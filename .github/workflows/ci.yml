@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+
+  wedge:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx vitest run test/e2e/wedge.test.ts
+        env:
+          EDGEGATE_E2E_API_URL: ${{ secrets.EDGEGATE_E2E_API_URL }}
+          EDGEGATE_E2E_API_KEY: ${{ secrets.EDGEGATE_E2E_API_KEY }}
+          EDGEGATE_E2E_WORKSPACE_ID: ${{ secrets.EDGEGATE_E2E_WORKSPACE_ID }}
+          EDGEGATE_E2E_MODEL_ARTIFACT_ID: ${{ secrets.EDGEGATE_E2E_MODEL_ARTIFACT_ID }}
