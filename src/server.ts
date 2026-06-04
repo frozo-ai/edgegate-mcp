@@ -1,0 +1,137 @@
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { EdgeGateClient } from "./client.js";
+import { VERSION } from "./version.js";
+
+import { setupWorkspaceHandler, setupWorkspaceInputSchema } from "./tools/setup_workspace.js";
+import { createPipelineHandler, createPipelineInputSchema } from "./tools/create_pipeline.js";
+import { runGateHandler, runGateInputSchema } from "./tools/run_gate.js";
+import { checkStatusHandler, checkStatusInputSchema } from "./tools/check_status.js";
+import { getReportHandler, getReportInputSchema } from "./tools/get_report.js";
+import { getAuditReportHandler, getAuditReportInputSchema } from "./tools/get_audit_report.js";
+import {
+  setupGithubActionHandler,
+  setupGithubActionInputSchema,
+} from "./tools/setup_github_action.js";
+
+const TOOLS = [
+  {
+    name: "edgegate_setup_workspace",
+    description:
+      "Confirm or list EdgeGate workspaces visible to the API key. Run this first " +
+      "in a fresh conversation to lock in which workspace_id the other tools should use.",
+    schema: setupWorkspaceInputSchema,
+    handler: setupWorkspaceHandler,
+  },
+  {
+    name: "edgegate_create_pipeline",
+    description:
+      "Create a new EdgeGate regression pipeline. Define which model(s), which device(s), " +
+      "and which gates (e.g. inference_time_ms ≤ 10) the pipeline will enforce.",
+    schema: createPipelineInputSchema,
+    handler: createPipelineHandler,
+  },
+  {
+    name: "edgegate_run_gate",
+    description:
+      "Trigger an EdgeGate run against a pipeline. Returns a run_id you can poll with " +
+      "edgegate_check_status.",
+    schema: runGateInputSchema,
+    handler: runGateHandler,
+  },
+  {
+    name: "edgegate_check_status",
+    description:
+      "Get the current status of an EdgeGate run, including per-device metrics and " +
+      "which gates passed or failed.",
+    schema: checkStatusInputSchema,
+    handler: checkStatusHandler,
+  },
+  {
+    name: "edgegate_get_report",
+    description: "List recent EdgeGate runs in a workspace with status, duration, and trigger.",
+    schema: getReportInputSchema,
+    handler: getReportHandler,
+  },
+  {
+    name: "edgegate_get_audit_report",
+    description:
+      "Get the signed audit report PDF URL for a completed EdgeGate run. Used for " +
+      "compliance records.",
+    schema: getAuditReportInputSchema,
+    handler: getAuditReportHandler,
+  },
+  {
+    name: "edgegate_setup_github_action",
+    description:
+      "Generate the GitHub Actions workflow YAML + gh secret commands so every PR runs " +
+      "EdgeGate as a CI gate.",
+    schema: setupGithubActionInputSchema,
+    handler: setupGithubActionHandler,
+  },
+] as const;
+
+function getClient(): EdgeGateClient {
+  const apiUrl = process.env.EDGEGATE_API_URL ?? "https://edgegateapi.frozo.ai";
+  const apiKey = process.env.EDGEGATE_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "EDGEGATE_API_KEY is not set. Set it in your MCP client config. Generate a " +
+        "key at https://edgegate.frozo.ai/workspace/<id>/settings#api-keys."
+    );
+  }
+  return new EdgeGateClient({ apiUrl, apiKey });
+}
+
+async function main(): Promise<void> {
+  const server = new Server(
+    { name: "edgegate-mcp", version: VERSION },
+    { capabilities: { tools: {} } }
+  );
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: TOOLS.map((t) => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: zodToJsonSchema(t.schema) as Record<string, unknown>,
+    })),
+  }));
+
+  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const tool = TOOLS.find((t) => t.name === req.params.name);
+    if (!tool) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Unknown tool: ${req.params.name}` }],
+      };
+    }
+    const parsed = tool.schema.safeParse(req.params.arguments ?? {});
+    if (!parsed.success) {
+      return {
+        isError: true,
+        content: [
+          { type: "text", text: `Invalid arguments for ${tool.name}: ${parsed.error.message}` },
+        ],
+      };
+    }
+    const client = getClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return tool.handler(client, parsed.data as any) as any;
+  });
+
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  // eslint-disable-next-line no-console
+  console.error(`edgegate-mcp ${VERSION} listening on stdio`);
+}
+
+main().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error("Fatal:", err);
+  process.exit(1);
+});
