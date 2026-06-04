@@ -1,0 +1,26 @@
+{
+  "name": "edgegate",
+  "version": "0.1.0",
+  "description": "Edge-AI regression gates from Claude Code — set up CI, run benchmarks, and fetch audit PDFs from any prompt.",
+  "author": "Frozo / EdgeGate",
+  "homepage": "https://edgegate.frozo.ai",
+  "repository": "https://github.com/frozo-ai/edgegate-mcp",
+  "license": "MIT",
+  "mcpServers": {
+    "edgegate": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "edgegate-mcp"],
+      "env": {
+        "EDGEGATE_API_KEY": "${EDGEGATE_API_KEY}",
+        "EDGEGATE_API_URL": "${EDGEGATE_API_URL:-https://edgegateapi.frozo.ai}"
+      }
+    }
+  },
+  "skills": [
+    "skills/edgegate-init.md",
+    "skills/edgegate-gate.md",
+    "skills/edgegate-status.md",
+    "skills/edgegate-audit.md"
+  ]
+}
