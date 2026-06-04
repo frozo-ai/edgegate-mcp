@@ -1,0 +1,49 @@
+{
+  "name": "edgegate-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for EdgeGate — set up edge-AI regression gates from Claude Code, Cursor, or Claude Desktop.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "edgegate-mcp": "./bin/edgegate-mcp",
+    "edgegate-mcp-install": "./bin/edgegate-mcp-install"
+  },
+  "main": "./dist/server.js",
+  "files": [
+    "dist/",
+    "bin/",
+    "skills/",
+    "plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.ts'",
+    "format": "prettier --write 'src/**/*.ts'",
+    "prepublishOnly": "npm run build && npm test && npm run lint"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "undici": "^6.0.0",
+    "zod": "^3.23.0",
+    "zod-to-json-schema": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "msw": "^2.3.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
