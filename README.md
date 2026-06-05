@@ -4,7 +4,7 @@ MCP server for [EdgeGate](https://edgegate.frozo.ai) — set up edge-AI regressi
 
 ## What does it do?
 
-EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 7 MCP tools, plus 4 bundled skills, so you can drive the whole flow from a prompt:
+EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 9 MCP tools, plus 4 bundled skills, so you can drive the whole flow from a prompt:
 
 ```
 > Use the edgegate MCP to set up a CI gate for my MobileNet ONNX model.
@@ -68,6 +68,7 @@ See [docs/tools.md](./docs/tools.md) for the full tool reference. Quick list:
 | `edgegate_get_audit_report` | Fetch the signed audit PDF |
 | `edgegate_setup_github_action` | Generate the GitHub Actions workflow + secret commands |
 | `edgegate_compare_runs` | Diff two runs — gate flips, metric deltas, per-device breakdown, REGRESSION / IMPROVEMENT / NEUTRAL verdict |
+| `edgegate_export_run_report` | Save a complete run report as a markdown file to disk (returns the file path + preview) |
 
 ## Skills
 

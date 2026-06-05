@@ -22,6 +22,10 @@ import {
   compareRunsHandler,
   compareRunsInputSchema,
 } from "./tools/compare_runs.js";
+import {
+  exportRunReportHandler,
+  exportRunReportInputSchema,
+} from "./tools/export_run_report.js";
 
 const TOOLS = [
   {
@@ -87,6 +91,15 @@ const TOOLS = [
       "PASSED run from the same pipeline as the baseline.",
     schema: compareRunsInputSchema,
     handler: compareRunsHandler,
+  },
+  {
+    name: "edgegate_export_run_report",
+    description:
+      "Download a human-readable markdown report for an EdgeGate run and save it to disk. " +
+      "Returns the absolute file path plus a preview of the first 30 lines. " +
+      "Optionally includes a run-vs-baseline diff section (include_diff=true).",
+    schema: exportRunReportInputSchema,
+    handler: exportRunReportHandler,
   },
 ] as const;
 
