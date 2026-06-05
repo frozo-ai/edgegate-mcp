@@ -1,6 +1,7 @@
 import { USER_AGENT } from "./version.js";
 import type {
   APIKeyCreateResponse,
+  HFImportJob,
   Pipeline,
   RunBundle,
   RunComparison,
@@ -119,6 +120,22 @@ export class EdgeGateClient {
     return this.request<WorkflowTemplate>(
       "GET",
       `/v1/workspaces/${workspaceId}/github-action/template`
+    );
+  }
+  async startHuggingFaceImport(
+    workspaceId: string,
+    body: { hf_repo_id: string; revision?: string; filename?: string }
+  ): Promise<HFImportJob> {
+    return this.request<HFImportJob>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/artifacts/import-huggingface`,
+      body
+    );
+  }
+  async getHuggingFaceImportJob(workspaceId: string, jobId: string): Promise<HFImportJob> {
+    return this.request<HFImportJob>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/artifacts/import-huggingface/${jobId}`
     );
   }
 

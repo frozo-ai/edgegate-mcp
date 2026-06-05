@@ -163,3 +163,32 @@ Download a human-readable markdown report for an EdgeGate run and save it to dis
 - `include_diff=true` silently omits the diff section if the backend returns `404` (first run in pipeline or diff not yet generated).
 
 **Errors:** `404` if the run is not found.
+
+---
+
+## `edgegate_import_huggingface_model`
+
+Import a public Hugging Face model that contains a pre-built ONNX file. EdgeGate downloads the file and registers it as an Artifact ready to use in `edgegate_create_pipeline`.
+
+**Input:**
+- `workspace_id` (string, UUID, required)
+- `hf_repo_id` (string, required) — Hugging Face repo in `"<owner>/<name>"` format, e.g. `"microsoft/resnet-50"`
+- `revision` (string, optional, default `"main"`) — branch, tag, or commit SHA to import from
+- `filename` (string, optional) — specific ONNX filename; omit to let EdgeGate autodetect
+- `poll_for_completion` (boolean, optional, default `true`) — when `true`, polls until the import finishes before returning
+- `max_poll_seconds` (int, 1-900, optional, default `300`) — maximum time to wait when polling
+
+**Returns (on success):** Markdown with the `artifact_id`, filename, file size, and a ready-to-copy snippet showing how to reference it in `edgegate_create_pipeline`.
+
+**Returns (poll=false):** The `import_job_id` and current status immediately, with instructions for re-polling later.
+
+**Returns (timeout):** Current status and `import_job_id` to re-check later; the import continues in the background.
+
+**Errors:**
+- `failed` status — returns `isError: true` with the `error_detail` (e.g. "no ONNX file found in repository"). Common causes: no pre-built ONNX in the repo, private repo, bad revision/filename.
+- `402` — your plan does not include HuggingFace imports; upgrade at `https://edgegate.frozo.ai/pricing`.
+- `401` — API key missing, expired, or revoked.
+
+**v1 scope:**
+- Public repos only
+- ONNX files only (no optimum conversion, no LLM tokenizer wrapping)

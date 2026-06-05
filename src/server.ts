@@ -26,6 +26,10 @@ import {
   exportRunReportHandler,
   exportRunReportInputSchema,
 } from "./tools/export_run_report.js";
+import {
+  importHuggingfaceModelHandler,
+  importHuggingfaceModelInputSchema,
+} from "./tools/import_huggingface_model.js";
 
 const TOOLS = [
   {
@@ -100,6 +104,16 @@ const TOOLS = [
       "Optionally includes a run-vs-baseline diff section (include_diff=true).",
     schema: exportRunReportInputSchema,
     handler: exportRunReportHandler,
+  },
+  {
+    name: "edgegate_import_huggingface_model",
+    description:
+      "Import a public Hugging Face model that contains a pre-built ONNX file. EdgeGate " +
+      "downloads the file and registers it as an Artifact. Returns the artifact_id you can " +
+      "pass directly to edgegate_create_pipeline. Polls until the import completes by default " +
+      "(poll_for_completion=true); set to false to return immediately with the job id.",
+    schema: importHuggingfaceModelInputSchema,
+    handler: importHuggingfaceModelHandler,
   },
 ] as const;
 

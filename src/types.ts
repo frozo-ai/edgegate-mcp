@@ -97,6 +97,26 @@ export interface AuditReport {
   generated_at?: string;
 }
 
+// ─── HuggingFace import types ─────────────────────────────────────────────
+
+export type HFImportStatus =
+  | "queued"
+  | "downloading"
+  | "uploading_to_hub"
+  | "done"
+  | "failed";
+
+export interface HFImportJob {
+  import_job_id: string;
+  status: HFImportStatus;
+  hf_repo_id?: string;
+  revision?: string;
+  artifact_id: string | null;
+  size_bytes: number | null;
+  filename: string | null;
+  error_detail: string | null;
+}
+
 // ─── Compare-runs types ────────────────────────────────────────────────────
 
 export interface MetricDelta {
