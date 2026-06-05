@@ -165,3 +165,53 @@ export interface RunComparison {
   diff: RunDiffPayload;
   created_at: string;
 }
+
+// ─── PromptPack types ──────────────────────────────────────────────────────
+
+export interface PromptPackSummary {
+  id: UUID;
+  promptpack_id: string;
+  version: string;
+  sha256: string;
+  case_count: number;
+  published: boolean;
+  created_at: string;
+}
+
+export interface PromptPackExpected {
+  type: "none" | "exact" | "regex" | "json_schema";
+  text?: string;
+  pattern?: string;
+  schema?: Record<string, unknown>;
+}
+
+export interface PromptPackDefaults {
+  max_new_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+  seed?: number;
+}
+
+export interface PromptPackCase {
+  case_id: string;
+  name: string;
+  prompt: string;
+  expected?: PromptPackExpected;
+  overrides?: PromptPackDefaults;
+}
+
+export interface PromptPackContent {
+  promptpack_id: string;
+  version: string;
+  name: string;
+  description?: string;
+  tags?: string[];
+  defaults?: PromptPackDefaults;
+  cases: PromptPackCase[];
+}
+
+export interface PromptPackCreateBody {
+  promptpack_id: string;
+  version: string;
+  content: PromptPackContent;
+}

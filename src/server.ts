@@ -30,6 +30,14 @@ import {
   importHuggingfaceModelHandler,
   importHuggingfaceModelInputSchema,
 } from "./tools/import_huggingface_model.js";
+import {
+  listPromptpacksHandler,
+  listPromptpacksInputSchema,
+} from "./tools/list_promptpacks.js";
+import {
+  createPromptpackHandler,
+  createPromptpackInputSchema,
+} from "./tools/create_promptpack.js";
 
 const TOOLS = [
   {
@@ -114,6 +122,25 @@ const TOOLS = [
       "(poll_for_completion=true); set to false to return immediately with the job id.",
     schema: importHuggingfaceModelInputSchema,
     handler: importHuggingfaceModelHandler,
+  },
+  {
+    name: "edgegate_list_promptpacks",
+    description:
+      "List all promptpacks in an EdgeGate workspace. Returns a markdown table with " +
+      "promptpack_id, version, case count, published status, and creation date. " +
+      "Use include_unpublished=false to hide draft packs.",
+    schema: listPromptpacksInputSchema,
+    handler: listPromptpacksHandler,
+  },
+  {
+    name: "edgegate_create_promptpack",
+    description:
+      "Create a new promptpack in an EdgeGate workspace. A promptpack defines the test " +
+      "cases (prompts, expected outputs, per-case overrides) that regression pipelines " +
+      "evaluate. Requires admin role on the workspace. Packs are immutable after creation — " +
+      "bump the version to update.",
+    schema: createPromptpackInputSchema,
+    handler: createPromptpackHandler,
   },
 ] as const;
 

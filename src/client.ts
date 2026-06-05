@@ -3,6 +3,8 @@ import type {
   APIKeyCreateResponse,
   HFImportJob,
   Pipeline,
+  PromptPackCreateBody,
+  PromptPackSummary,
   RunBundle,
   RunComparison,
   RunDetail,
@@ -136,6 +138,22 @@ export class EdgeGateClient {
     return this.request<HFImportJob>(
       "GET",
       `/v1/workspaces/${workspaceId}/artifacts/import-huggingface/${jobId}`
+    );
+  }
+  async listPromptPacks(workspaceId: string): Promise<PromptPackSummary[]> {
+    return this.request<PromptPackSummary[]>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/promptpacks`
+    );
+  }
+  async createPromptPack(
+    workspaceId: string,
+    body: PromptPackCreateBody
+  ): Promise<PromptPackSummary> {
+    return this.request<PromptPackSummary>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/promptpacks`,
+      body
     );
   }
 

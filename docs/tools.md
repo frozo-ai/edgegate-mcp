@@ -192,3 +192,49 @@ Import a public Hugging Face model that contains a pre-built ONNX file. EdgeGate
 **v1 scope:**
 - Public repos only
 - ONNX files only (no optimum conversion, no LLM tokenizer wrapping)
+
+---
+
+## `edgegate_list_promptpacks`
+
+List all promptpacks in an EdgeGate workspace.
+
+**Input:**
+- `workspace_id` (string, UUID, required)
+- `include_unpublished` (boolean, optional, default `true`) — when `false`, hides packs with `published=false` (client-side filter)
+
+**Returns:** Markdown table with `promptpack_id`, `version`, case count, published status, and creation date. When no packs exist, returns a message with a link to create one.
+
+**Note:** Use the `promptpack_id` string column (not the UUID `id`) when referencing a pack in `edgegate_create_pipeline`.
+
+---
+
+## `edgegate_create_promptpack`
+
+Create a new promptpack in an EdgeGate workspace. Requires admin role. Packs are immutable — bump the version to update.
+
+**Input:**
+- `workspace_id` (string, UUID, required)
+- `promptpack_id` (string, required, `^[a-zA-Z0-9_-]{1,64}$`) — slug identifier, e.g. `"my-text-embed-bench"`
+- `version` (string, required, semver, e.g. `"1.0.0"`)
+- `name` (string, required, 1-255 chars)
+- `description` (string, optional, ≤ 2000 chars)
+- `tags` (string[], optional, ≤ 20 items, each 1-64 chars)
+- `defaults` (object, optional):
+  - `max_new_tokens` (int, 1-256, default 128)
+  - `temperature` (float, 0-2, default 0.2)
+  - `top_p` (float, 0-1, default 0.95)
+  - `seed` (int, ≥ 0, default 42)
+- `cases` (array, 1-50 entries, required):
+  - `case_id` (string, `^[a-zA-Z0-9_-]{1,64}$`, required)
+  - `name` (string, 1-255 chars, required)
+  - `prompt` (string, 1-32000 chars, required)
+  - `expected` (object, optional): `{ type: "none" }` | `{ type: "exact", text }` | `{ type: "regex", pattern }` | `{ type: "json_schema", schema }`
+  - `overrides` (object, optional): same fields as `defaults`
+
+**Returns (201):** Markdown confirming the new pack with its UUID, case count, sha256, and a ready-to-copy `edgegate_create_pipeline` snippet.
+
+**Errors:**
+- `400`/`422` — schema validation failure; issues array surfaced in the response.
+- `403` — you need admin role on this workspace to create promptpacks.
+- `409` — `(promptpack_id, version)` already exists. Packs are immutable — bump the version and retry.
