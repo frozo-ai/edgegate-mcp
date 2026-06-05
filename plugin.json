@@ -1,7 +1,7 @@
 {
   "name": "edgegate",
-  "version": "0.1.0",
-  "description": "Edge-AI regression gates from Claude Code — set up CI, run benchmarks, and fetch audit PDFs from any prompt.",
+  "version": "0.2.2",
+  "description": "Edge-AI regression gates from Claude Code — set up CI, run benchmarks, compare runs, export reports, and fetch audit bundles from any prompt.",
   "author": "Frozo / EdgeGate",
   "homepage": "https://edgegate.frozo.ai",
   "repository": "https://github.com/frozo-ai/edgegate-mcp",
@@ -21,6 +21,8 @@
     "skills/edgegate-init.md",
     "skills/edgegate-gate.md",
     "skills/edgegate-status.md",
-    "skills/edgegate-audit.md"
+    "skills/edgegate-audit.md",
+    "skills/edgegate-compare.md",
+    "skills/edgegate-export.md"
   ]
 }

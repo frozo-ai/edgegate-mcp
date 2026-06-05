@@ -77,7 +77,9 @@ Slash commands you can invoke directly:
 - `/edgegate-init` — full onboarding flow (zero → CI gate)
 - `/edgegate-gate` — trigger a run on an existing pipeline
 - `/edgegate-status` — check a run's status + metrics
-- `/edgegate-audit` — fetch the audit PDF for a run
+- `/edgegate-audit` — fetch the evidence bundle for a run
+- `/edgegate-compare` — diff two runs (auto-baseline) with REGRESSION/IMPROVEMENT/NEUTRAL verdict
+- `/edgegate-export` — save a run report as a markdown file (for PR comments, Slack, compliance)
 
 ## License
 

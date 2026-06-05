@@ -164,7 +164,7 @@ describe("export_run_report — writes file when output_path is a file path", ()
     expect(written).toContain("PASSED");
     expect(written).toContain("inference_time_ms");
     expect(written).toContain("8.4");
-    expect(written).toContain("edgegate-mcp@0.2.1");
+    expect(written).toMatch(/edgegate-mcp@\d+\.\d+\.\d+/);
 
     // Cleanup
     await rm(outPath, { force: true });
