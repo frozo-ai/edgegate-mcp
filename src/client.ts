@@ -2,6 +2,7 @@ import { USER_AGENT } from "./version.js";
 import type {
   APIKeyCreateResponse,
   HFImportJob,
+  InputSpec,
   Pipeline,
   PromptPackCreateBody,
   PromptPackSummary,
@@ -77,6 +78,9 @@ export class EdgeGateClient {
         timeout_minutes?: number;
       };
       model_matrix?: Array<{ artifact_id: string; label?: string }>;
+      /** Optional explicit AI Hub compile input shapes.  Omit to let EdgeGate
+       *  auto-detect from the ONNX file (works for most models). */
+      input_specs?: Record<string, InputSpec>;
     }
   ): Promise<Pipeline> {
     return this.request<Pipeline>("POST", `/v1/workspaces/${workspaceId}/pipelines`, body);

@@ -1,5 +1,25 @@
 export type UUID = string;
 
+// ─── InputSpec types ───────────────────────────────────────────────────────
+
+/** Supported dtypes for AI Hub compile input tensors. */
+export type InputSpecDtype = "float32" | "float16" | "int64" | "int32" | "bool";
+
+/**
+ * Explicit shape + dtype for one named model input.
+ * Passed as `input_specs` on pipeline create/update to override the default
+ * AI Hub auto-detect or PR-#40 auto-resolve behaviour.
+ *
+ * Example (BERT-family):
+ *   { shape: [1, 128], dtype: "int64" }
+ */
+export interface InputSpec {
+  /** Tensor shape (1–8 positive integers). */
+  shape: number[];
+  /** Element dtype. Defaults to "float32" when omitted. */
+  dtype: InputSpecDtype;
+}
+
 export interface Workspace {
   id: UUID;
   name: string;

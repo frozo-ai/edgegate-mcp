@@ -29,6 +29,10 @@ Define a new EdgeGate regression pipeline.
   - `threshold`: positive number
 - `models` (array of `{name, artifact_id}`, 1-10 entries, **optional**) — omit for single-model mode where the model artifact is supplied per-run to `edgegate_run_gate`.
 - `repeats` (int, 1-5, optional) — measurement repeats per cell (default: 3).
+- `input_specs` (object, **optional**) — explicit AI Hub compile input shapes. A dict mapping each input name to `{ shape: number[], dtype?: "float32"|"float16"|"int64"|"int32"|"bool" }`. Omit to let EdgeGate auto-detect from the ONNX file (recommended for image models and most BERT-family models). Set when the model needs a non-standard sequence length, custom audio input shape, or mixed-input shapes.
+  - Example for long-context BERT: `{ "input_ids": { "shape": [1, 512], "dtype": "int64" }, "attention_mask": { "shape": [1, 512], "dtype": "int64" } }`
+  - `shape`: array of 1–8 positive integers
+  - `dtype`: defaults to `"float32"` when omitted
 
 **Constraint:** When `models` is provided, `models.length * devices.length ≤ 25` (M × D cell limit).
 
