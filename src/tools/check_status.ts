@@ -32,25 +32,45 @@ function format(run: RunDetail): string {
   const badge = run.status.toUpperCase();
   const lines: string[] = [
     `Run **${run.id}**: ${badge}`,
-    `Pipeline: ${run.pipeline_id}`,
+    `Pipeline: ${run.pipeline_id} (${run.pipeline_name})`,
     `Trigger: ${run.trigger}`,
-    `Started: ${run.started_at ?? "(pending)"}`,
+    `Started: ${run.created_at}`,
     `Completed: ${run.completed_at ?? "(in flight)"}`,
     ``,
   ];
-  for (const cell of run.cells ?? []) {
-    lines.push(`### Cell: ${cell.device_name}`);
-    for (const [m, v] of Object.entries(cell.metrics)) {
-      lines.push(`- ${m}: ${v}`);
-    }
-    for (const gr of cell.gate_results ?? []) {
-      const sym = gr.passed ? "✓" : "✗";
-      lines.push(`  ${sym} ${gr.metric} ${gr.passed ? "≤" : ">"} ${gr.threshold} (actual ${gr.actual})`);
+
+  if (run.normalized_metrics) {
+    lines.push(`### Metrics`);
+    for (const [metric, value] of Object.entries(run.normalized_metrics)) {
+      lines.push(`- ${metric}: ${value}`);
     }
     lines.push(``);
   }
-  if (run.evidence_bundle_url) {
-    lines.push(`Evidence bundle: ${run.evidence_bundle_url}`);
+
+  if (run.gates_eval) {
+    lines.push(`### Gate Results`);
+    for (const gate of run.gates_eval.gates) {
+      const sym = gate.passed ? "✓" : "✗";
+      lines.push(
+        `  ${sym} ${gate.metric} ${gate.operator} ${gate.threshold} (actual ${gate.actual_value})`
+      );
+    }
+    lines.push(`Overall: ${run.gates_eval.passed ? "PASSED" : "FAILED"}`);
+    lines.push(``);
   }
+
+  if (run.error_code) {
+    lines.push(`Error: ${run.error_code}`);
+    if (run.error_detail) lines.push(`Detail: ${run.error_detail}`);
+    lines.push(``);
+  }
+
+  if (run.bundle_artifact_id) {
+    lines.push(
+      `Evidence bundle artifact: ${run.bundle_artifact_id}`,
+      `Fetch bundle details with \`edgegate_get_audit_report\`.`
+    );
+  }
+
   return lines.join("\n");
 }

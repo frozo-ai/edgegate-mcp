@@ -28,12 +28,12 @@ export async function getReportHandler(
     const rows = runs
       .map((r) => {
         const dur =
-          r.started_at && r.completed_at
+          r.created_at && r.completed_at
             ? `${Math.round(
-                (new Date(r.completed_at).getTime() - new Date(r.started_at).getTime()) / 1000
+                (new Date(r.completed_at).getTime() - new Date(r.created_at).getTime()) / 1000
               )}s`
             : "-";
-        return `| ${r.id} | ${r.status} | ${r.trigger} | ${dur} | ${r.started_at ?? "-"} |`;
+        return `| ${r.id} | ${r.status} | ${r.trigger} | ${dur} | ${r.created_at ?? "-"} |`;
       })
       .join("\n");
     return {

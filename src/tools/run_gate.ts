@@ -15,9 +15,12 @@ export async function runGateHandler(
   input: RunGateInput
 ): Promise<ToolResult> {
   try {
-    const run = await client.triggerRun(input.workspace_id, input.pipeline_id, {
-      trigger: "mcp",
-      model_artifact_id: input.model_artifact_id,
+    const run = await client.triggerRun(input.workspace_id, {
+      pipeline_id: input.pipeline_id,
+      trigger: "manual",
+      ...(input.model_artifact_id !== undefined
+        ? { model_artifact_id: input.model_artifact_id }
+        : {}),
     });
     return {
       content: [

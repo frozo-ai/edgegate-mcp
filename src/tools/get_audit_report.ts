@@ -14,23 +14,43 @@ export async function getAuditReportHandler(
   input: GetAuditReportInput
 ): Promise<ToolResult> {
   try {
-    const report = await client.getAuditReport(input.workspace_id, input.run_id);
+    const bundle = await client.getRunBundle(input.workspace_id, input.run_id);
+    const lines: string[] = [
+      `Evidence bundle for run ${input.run_id}:`,
+      ``,
+      `Status: ${bundle.status.toUpperCase()}`,
+      `Pipeline: ${bundle.pipeline_id} (${bundle.pipeline_name})`,
+      `Bundle artifact ID: ${bundle.bundle_artifact_id ?? "(not yet generated)"}`,
+      ``,
+    ];
+
+    if (bundle.normalized_metrics) {
+      lines.push(`### Metrics`);
+      for (const [metric, value] of Object.entries(bundle.normalized_metrics)) {
+        lines.push(`- ${metric}: ${value}`);
+      }
+      lines.push(``);
+    }
+
+    if (bundle.gates_eval) {
+      lines.push(`### Gate Decisions`);
+      for (const gate of bundle.gates_eval.gates) {
+        const sym = gate.passed ? "✓" : "✗";
+        lines.push(
+          `  ${sym} ${gate.metric} ${gate.operator} ${gate.threshold} (actual ${gate.actual_value})`
+        );
+      }
+      lines.push(`Overall: ${bundle.gates_eval.passed ? "PASSED" : "FAILED"}`);
+      lines.push(``);
+    }
+
+    lines.push(
+      `The bundle artifact ID can be used with the EdgeGate API to download the ` +
+        `signed evidence bundle containing the full SHA-256 manifest and device fingerprints.`
+    );
+
     return {
-      content: [
-        {
-          type: "text",
-          text: [
-            `Audit report for run ${input.run_id}:`,
-            ``,
-            `Download URL: ${report.url}`,
-            `Generated: ${report.generated_at}`,
-            ``,
-            `The URL is signed and time-limited (typically 1h). The PDF contains ` +
-              `the signed evidence bundle hash, device fingerprints, and gate decisions — ` +
-              `keep it with your compliance records.`,
-          ].join("\n"),
-        },
-      ],
+      content: [{ type: "text", text: lines.join("\n") }],
     };
   } catch (err) {
     if (err instanceof EdgeGateError) {
@@ -40,10 +60,13 @@ export async function getAuditReportHandler(
           {
             type: "text",
             text:
-              err.status === 404
-                ? `No audit report for run ${input.run_id} yet. Reports are generated ` +
-                  `asynchronously after the run completes — try again in 1-2 minutes.`
-                : `EdgeGate returned ${err.status}: ${err.detail}`,
+              err.status === 409
+                ? `Evidence bundle not available yet — the run has not completed. ` +
+                  `Check status with \`edgegate_check_status\` and retry when it is PASSED or FAILED.`
+                : err.status === 404
+                  ? `No evidence bundle for run ${input.run_id} yet. ` +
+                    `Bundles are generated after the run completes — try again in 1-2 minutes.`
+                  : `EdgeGate returned ${err.status}: ${err.detail}`,
           },
         ],
       };

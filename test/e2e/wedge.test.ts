@@ -41,21 +41,25 @@ const skip = !apiUrl || !apiKey || !wsId || !artifactId;
     const create = await createPipelineHandler(client, {
       workspace_id: wsId,
       name: pipelineName,
-      models: [{ name: "WedgeModel", artifact_id: artifactId }],
+      // Use the string promptpack_id (not the UUID row id)
+      promptpack_id: "image-classification-bench-v1",
+      promptpack_version: "1.0.0",
       devices: ["Samsung Galaxy S24 (Family)"],
       gates: [
         { metric: "inference_time_ms", operator: "<=", threshold: 100 },
         { metric: "peak_memory_mb", operator: "<=", threshold: 500 },
       ],
+      // Single model supplied per-run; omit models array for legacy mode
     });
     expect(create.isError).toBeUndefined();
     const pipelineId = extractUuid(create.content[0].text);
     expect(pipelineId).toBeTruthy();
 
-    // Step 3: run_gate
+    // Step 3: run_gate — supply the model artifact for single-model (legacy) mode
     const run = await runGateHandler(client, {
       workspace_id: wsId,
       pipeline_id: pipelineId!,
+      model_artifact_id: artifactId,
     });
     expect(run.isError).toBeUndefined();
     const runId = extractUuid(run.content[0].text);

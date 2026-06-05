@@ -12,12 +12,16 @@ export interface Workspace {
 
 export interface Pipeline {
   id: UUID;
-  workspace_id: UUID;
   name: string;
-  description: string | null;
-  status: "active" | "paused";
-  pipeline_yaml: string;
+  device_count: number;
+  model_count: number;
+  gate_count: number;
+  cell_count: number;
+  promptpack_id: string;
+  promptpack_version: string;
   created_at: string;
+  updated_at: string;
+  last_run: { id: UUID; status: string; created_at: string } | null;
 }
 
 export interface Gate {
@@ -28,24 +32,49 @@ export interface Gate {
 
 export interface RunSummary {
   id: UUID;
-  workspace_id: UUID;
   pipeline_id: UUID;
+  pipeline_name: string;
   status: "pending" | "running" | "passed" | "failed" | "error";
-  started_at: string | null;
-  completed_at: string | null;
   trigger: string;
+  model_artifact_id: UUID | null;
+  model_filename: string | null;
+  error_code: string | null;
+  error_detail: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  hub_model_id: string | null;
+  hub_job_id: string | null;
 }
 
-export interface RunCell {
-  model_artifact_id: UUID;
-  device_name: string;
-  metrics: Record<string, number>;
-  gate_results: Array<{ metric: string; passed: boolean; threshold: number; actual: number }>;
+export interface GateEvalResult {
+  metric: string;
+  passed: boolean;
+  operator: string;
+  threshold: number;
+  description: string | null;
+  actual_value: number;
+}
+
+export interface GatesEval {
+  gates: GateEvalResult[];
+  passed: boolean;
 }
 
 export interface RunDetail extends RunSummary {
-  cells: RunCell[];
-  evidence_bundle_url: string | null;
+  normalized_metrics: Record<string, number> | null;
+  gates_eval: GatesEval | null;
+  bundle_artifact_id: UUID | null;
+}
+
+export interface RunBundle {
+  run_id: UUID;
+  status: string;
+  pipeline_id: UUID;
+  pipeline_name: string;
+  normalized_metrics: Record<string, number> | null;
+  gates_eval: GatesEval | null;
+  bundle_artifact_id: UUID | null;
 }
 
 export interface APIKeyCreateResponse {
@@ -62,7 +91,8 @@ export interface WorkflowTemplate {
   secret_names: string[];
 }
 
+/** @deprecated Not used — audit-report endpoint does not exist; use RunBundle instead. */
 export interface AuditReport {
-  url: string;
-  generated_at: string;
+  url?: string;
+  generated_at?: string;
 }

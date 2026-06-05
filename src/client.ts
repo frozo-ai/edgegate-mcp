@@ -1,8 +1,8 @@
 import { USER_AGENT } from "./version.js";
 import type {
   APIKeyCreateResponse,
-  AuditReport,
   Pipeline,
+  RunBundle,
   RunDetail,
   RunSummary,
   Workspace,
@@ -63,12 +63,16 @@ export class EdgeGateClient {
     workspaceId: string,
     body: {
       name: string;
-      description?: string;
-      models: Array<{ name: string; artifact_id: string }>;
-      devices: string[];
-      gates: Array<{ metric: string; operator: string; threshold: number }>;
-      promptpack_id?: string;
-      repeats?: number;
+      device_matrix: Array<{ name: string; enabled: boolean }>;
+      promptpack_ref: { promptpack_id: string; version: string };
+      gates: Array<{ metric: string; operator: string; threshold: number; description?: string }>;
+      run_policy?: {
+        warmup_runs?: number;
+        measurement_repeats?: number;
+        max_new_tokens?: number;
+        timeout_minutes?: number;
+      };
+      model_matrix?: Array<{ artifact_id: string; label?: string }>;
     }
   ): Promise<Pipeline> {
     return this.request<Pipeline>("POST", `/v1/workspaces/${workspaceId}/pipelines`, body);
@@ -78,14 +82,9 @@ export class EdgeGateClient {
   }
   async triggerRun(
     workspaceId: string,
-    pipelineId: string,
-    body: { trigger?: string; model_artifact_id?: string } = {}
+    body: { pipeline_id: string; trigger?: string; model_artifact_id?: string }
   ): Promise<RunSummary> {
-    return this.request<RunSummary>(
-      "POST",
-      `/v1/workspaces/${workspaceId}/pipelines/${pipelineId}/runs`,
-      body
-    );
+    return this.request<RunSummary>("POST", `/v1/workspaces/${workspaceId}/runs`, body);
   }
   async getRun(workspaceId: string, runId: string): Promise<RunDetail> {
     return this.request<RunDetail>("GET", `/v1/workspaces/${workspaceId}/runs/${runId}`);
@@ -96,11 +95,8 @@ export class EdgeGateClient {
       `/v1/workspaces/${workspaceId}/runs?limit=${limit}`
     );
   }
-  async getAuditReport(workspaceId: string, runId: string): Promise<AuditReport> {
-    return this.request<AuditReport>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/runs/${runId}/audit-report`
-    );
+  async getRunBundle(workspaceId: string, runId: string): Promise<RunBundle> {
+    return this.request<RunBundle>("GET", `/v1/workspaces/${workspaceId}/runs/${runId}/bundle`);
   }
   async getWorkflowTemplate(workspaceId: string): Promise<WorkflowTemplate> {
     return this.request<WorkflowTemplate>(

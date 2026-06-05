@@ -20,17 +20,17 @@ Define a new EdgeGate regression pipeline.
 **Input:**
 - `workspace_id` (string, UUID, required)
 - `name` (string, required, ≤ 255 chars)
-- `description` (string, optional)
-- `models` (array of `{name, artifact_id}`, 1-10 entries)
-- `devices` (array of strings, 1-5 entries — must be valid AI Hub device names)
-- `gates` (array of `{metric, operator, threshold}`, ≥ 1 entry)
+- `promptpack_id` (string, required) — the string promptpack identifier, e.g. `"image-classification-bench-v1"`. List your packs at `GET /v1/workspaces/{id}/promptpacks`.
+- `promptpack_version` (string, default `"1.0.0"`) — version string of the promptpack.
+- `devices` (array of strings, 1-5 entries — must be valid AI Hub device names, e.g. `"Samsung Galaxy S24 (Family)"`)
+- `gates` (array of `{metric, operator, threshold, description?}`, ≥ 1 entry)
   - `metric`: one of `inference_time_ms`, `peak_memory_mb`, `throughput_tps`
-  - `operator`: one of `<=`, `<`, `>=`, `>`, `==`
+  - `operator`: one of `<=`, `<`, `>=`, `>`, `==` (translated internally to API enum `lte|lt|gte|gt|eq`)
   - `threshold`: positive number
-- `promptpack_id` (string, UUID, optional)
-- `repeats` (int, 1-5, optional)
+- `models` (array of `{name, artifact_id}`, 1-10 entries, **optional**) — omit for single-model mode where the model artifact is supplied per-run to `edgegate_run_gate`.
+- `repeats` (int, 1-5, optional) — measurement repeats per cell (default: 3).
 
-**Constraint:** `models.length * devices.length ≤ 25` (M × D cell limit). Enforced client-side and server-side.
+**Constraint:** When `models` is provided, `models.length * devices.length ≤ 25` (M × D cell limit).
 
 **Returns:** Markdown confirming the pipeline was created, including the new `pipeline_id`.
 
@@ -59,7 +59,7 @@ Poll a run for status, per-device metrics, and gate pass/fail.
 - `workspace_id` (string, UUID, required)
 - `run_id` (string, UUID, required)
 
-**Returns:** Markdown with status badge (PASSED/FAILED/PENDING/RUNNING/ERROR), per-device metrics, gate results, and (if completed) the evidence bundle URL.
+**Returns:** Markdown with status badge (PASSED/FAILED/PENDING/RUNNING/ERROR), normalized metrics, gate pass/fail decisions, and (if completed) the evidence bundle artifact ID.
 
 ---
 
@@ -77,15 +77,15 @@ List recent runs in a workspace.
 
 ## `edgegate_get_audit_report`
 
-Get the signed audit PDF URL for a completed run.
+Get the evidence bundle details for a completed run (metrics, gate decisions, bundle artifact ID).
 
 **Input:**
 - `workspace_id` (string, UUID, required)
 - `run_id` (string, UUID, required)
 
-**Returns:** Markdown with the signed (time-limited) URL and generation timestamp.
+**Returns:** Markdown with the bundle artifact ID, normalized metrics, gate pass/fail decisions, and a summary of the overall verdict.
 
-**Errors:** `404` means the report hasn't been generated yet (async, ~1-2 min after run completion).
+**Errors:** `404` — bundle not yet generated (async, ~1-2 min after run completion). `409` — run has not yet reached a terminal state; check with `edgegate_check_status` first.
 
 ---
 
