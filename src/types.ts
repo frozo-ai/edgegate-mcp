@@ -3,8 +3,11 @@ export type UUID = string;
 export interface Workspace {
   id: UUID;
   name: string;
-  owner_id: UUID;
-  plan: string;
+  /** Owner UUID — may be omitted by the API depending on response shape. */
+  owner_id?: UUID;
+  /** Calling user's plan tier; null/undefined when the API hasn't been
+   *  updated to include it. The MCP tool renders "(unknown)" in that case. */
+  plan?: string | null;
 }
 
 export interface Pipeline {

@@ -49,4 +49,17 @@ describe("setup_workspace tool", () => {
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toMatch(/EDGEGATE_API_KEY|invalid|401/i);
   });
+
+  it("renders '(unknown)' when the workspace has no plan field", async () => {
+    server.use(
+      http.get(`${apiUrl}/v1/workspaces`, () =>
+        HttpResponse.json([{ id: "w1", name: "Legacy Workspace" }])
+      )
+    );
+    const client = new EdgeGateClient({ apiUrl, apiKey });
+    const result = await setupWorkspaceHandler(client, {});
+    expect(result.content[0].text).toContain("Legacy Workspace");
+    expect(result.content[0].text).toContain("(unknown)");
+    expect(result.content[0].text).not.toContain("undefined");
+  });
 });

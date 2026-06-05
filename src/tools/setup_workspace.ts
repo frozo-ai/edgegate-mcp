@@ -61,17 +61,23 @@ export async function setupWorkspaceHandler(
   }
 }
 
+function planLabel(plan: string | null | undefined): string {
+  return plan ? plan : "(unknown)";
+}
+
 function formatSingle(ws: Workspace): string {
   return [
     `Active workspace: **${ws.name}**`,
     `- ID: ${ws.id}`,
-    `- Plan: ${ws.plan}`,
+    `- Plan: ${planLabel(ws.plan)}`,
     ``,
     `You can now use this workspace_id in the other EdgeGate MCP tools.`,
   ].join("\n");
 }
 function formatList(list: Workspace[]): string {
-  const rows = list.map((w) => `- **${w.name}** (id=${w.id}, plan=${w.plan})`).join("\n");
+  const rows = list
+    .map((w) => `- **${w.name}** (id=${w.id}, plan=${planLabel(w.plan)})`)
+    .join("\n");
   return [
     `Found ${list.length} workspace(s):`,
     ``,
