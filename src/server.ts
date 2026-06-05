@@ -38,6 +38,10 @@ import {
   createPromptpackHandler,
   createPromptpackInputSchema,
 } from "./tools/create_promptpack.js";
+import {
+  publishPromptpackHandler,
+  publishPromptpackInputSchema,
+} from "./tools/publish_promptpack.js";
 
 const TOOLS = [
   {
@@ -141,6 +145,16 @@ const TOOLS = [
       "bump the version to update.",
     schema: createPromptpackInputSchema,
     handler: createPromptpackHandler,
+  },
+  {
+    name: "edgegate_publish_promptpack",
+    description:
+      "Publish a promptpack version in an EdgeGate workspace so it can be referenced in " +
+      "pipelines. Newly created packs start as unpublished — call this after " +
+      "edgegate_create_promptpack to complete the create → publish → use lifecycle. " +
+      "Requires admin role on the workspace. The operation is idempotent.",
+    schema: publishPromptpackInputSchema,
+    handler: publishPromptpackHandler,
   },
 ] as const;
 

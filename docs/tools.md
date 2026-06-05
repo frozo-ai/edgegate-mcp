@@ -238,3 +238,21 @@ Create a new promptpack in an EdgeGate workspace. Requires admin role. Packs are
 - `400`/`422` — schema validation failure; issues array surfaced in the response.
 - `403` — you need admin role on this workspace to create promptpacks.
 - `409` — `(promptpack_id, version)` already exists. Packs are immutable — bump the version and retry.
+
+---
+
+## `edgegate_publish_promptpack`
+
+Publish a promptpack version so it can be referenced in pipelines. Newly created packs start with `published: false` — call this after `edgegate_create_promptpack` to complete the create → publish → use lifecycle. Requires admin role. The operation is idempotent.
+
+**Input:**
+- `workspace_id` (string, UUID, required)
+- `promptpack_id` (string, required, `^[a-zA-Z0-9_-]{1,64}$`)
+- `version` (string, required, semver, e.g. `"1.0.0"`)
+
+**Returns (200):** Markdown confirming the pack is published, with its UUID, case count, sha256, and a note that it is usable in `edgegate_create_pipeline`.
+
+**Errors:**
+- `404` — `(promptpack_id, version)` not found in this workspace. Use `edgegate_list_promptpacks` to check what exists.
+- `403` — you need admin role on this workspace to publish promptpacks.
+- `409` with "already published" — treated as idempotent success; the pack is already live.

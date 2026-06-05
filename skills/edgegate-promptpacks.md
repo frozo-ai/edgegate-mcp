@@ -1,17 +1,18 @@
 ---
 name: edgegate-promptpacks
-description: List or create EdgeGate promptpacks. Use when the user says "list my promptpacks", "what packs do I have", "create a promptpack", "make a new pack", "I need a text embedding pack", or any variation on viewing or authoring test-case packs for EdgeGate pipelines.
+description: List, create, or publish EdgeGate promptpacks. Use when the user says "list my promptpacks", "what packs do I have", "create a promptpack", "make a new pack", "publish a pack", "I need a text embedding pack", or any variation on viewing, authoring, or activating test-case packs for EdgeGate pipelines.
 ---
 
 # /edgegate-promptpacks
 
-The user wants to list existing promptpacks in their workspace, or create a new one.
+The user wants to list existing promptpacks in their workspace, create a new one, or publish one so it is usable in pipelines.
 
 ## Triggers
 
 Use this skill when the user says any of:
 - "list my promptpacks" / "what packs do I have" / "show my packs"
 - "create a promptpack" / "make a new pack" / "add test cases"
+- "publish a promptpack" / "activate a pack" / "make this pack usable"
 - "I need a text embedding pack" / "create an LLM completion benchmark"
 - "set up test cases for my image classification model"
 
@@ -31,6 +32,12 @@ Use this skill when the user says any of:
    b. Suggest 3–5 sensible test cases based on use case (Claude can generate them — see templates below).
    c. Confirm `promptpack_id` (slug, no spaces), `version` (start at `1.0.0` unless user says otherwise), and `name`.
    d. Call `edgegate_create_promptpack(...)`.
+   e. **Immediately publish** — call `edgegate_publish_promptpack({ workspace_id, promptpack_id, version })` right after creation. Do NOT wait for the user to ask. Packs start as `published: false` and are unusable in pipelines until published.
+
+4. **If publishing an existing pack:**
+   - Confirm `promptpack_id` and `version` (use `edgegate_list_promptpacks` if unsure).
+   - Call `edgegate_publish_promptpack({ workspace_id, promptpack_id, version })`.
+   - The operation is idempotent — safe to call even if already published.
 
 ## Case templates by model type
 
@@ -71,10 +78,20 @@ Use this skill when the user says any of:
 
 - Start at `1.0.0` unless the user specifies otherwise.
 - Packs are **immutable** — to update, bump the patch (e.g. `1.0.0` → `1.0.1`) and create a new pack.
-- Only published packs can be referenced in pipelines. Newly created packs are `published: false` — remind the user to publish via the dashboard.
+- Only published packs can be referenced in pipelines. Always call `edgegate_publish_promptpack` immediately after `edgegate_create_promptpack` — do not make the user do this manually.
+
+## Full lifecycle (always follow this sequence)
+
+```
+edgegate_create_promptpack(...)     # creates pack with published=false
+edgegate_publish_promptpack(...)    # publishes it — now usable in pipelines
+edgegate_create_pipeline(...)       # can now reference the promptpack_id
+```
 
 ## Failure modes
 
-- **409 conflict** — (promptpack_id, version) already exists. Bump the version and retry.
+- **409 conflict on create** — (promptpack_id, version) already exists. Bump the version and retry.
+- **409 "already published" on publish** — treated as success (idempotent); the pack is already live.
 - **403 forbidden** — user needs admin role on the workspace.
-- **400 / schema error** — surface the `issues` array to the user; common causes are `case_id` with spaces or special characters, `max_new_tokens` > 256, or more than 50 cases.
+- **404 on publish** — promptpack_id or version not found; confirm with `edgegate_list_promptpacks`.
+- **400 / schema error on create** — surface the `issues` array to the user; common causes are `case_id` with spaces or special characters, `max_new_tokens` > 256, or more than 50 cases.

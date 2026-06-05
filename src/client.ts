@@ -156,9 +156,19 @@ export class EdgeGateClient {
       body
     );
   }
+  async publishPromptPack(
+    workspaceId: string,
+    promptpackId: string,
+    version: string
+  ): Promise<PromptPackSummary> {
+    return this.request<PromptPackSummary>(
+      "PUT",
+      `/v1/workspaces/${workspaceId}/promptpacks/${promptpackId}/${version}/publish`
+    );
+  }
 
   private async request<T>(
-    method: "GET" | "POST" | "DELETE",
+    method: "GET" | "POST" | "DELETE" | "PUT",
     path: string,
     body?: unknown
   ): Promise<T> {

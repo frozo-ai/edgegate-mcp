@@ -4,7 +4,7 @@ MCP server for [EdgeGate](https://edgegate.frozo.ai) — set up edge-AI regressi
 
 ## What does it do?
 
-EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 12 MCP tools, plus bundled skills, so you can drive the whole flow from a prompt:
+EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 13 MCP tools, plus bundled skills, so you can drive the whole flow from a prompt:
 
 ```
 > Use the edgegate MCP to set up a CI gate for my MobileNet ONNX model.
@@ -72,6 +72,7 @@ See [docs/tools.md](./docs/tools.md) for the full tool reference. Quick list:
 | `edgegate_import_huggingface_model` | Import a public HuggingFace ONNX model — returns artifact_id ready for `edgegate_create_pipeline` |
 | `edgegate_list_promptpacks` | List all promptpacks in a workspace (id, version, case count, published status) |
 | `edgegate_create_promptpack` | Create a new promptpack with test cases (prompts, expected outputs, per-case overrides) |
+| `edgegate_publish_promptpack` | Publish a promptpack version so it is usable in pipelines (completes the create → publish → use lifecycle) |
 
 ## Skills
 
