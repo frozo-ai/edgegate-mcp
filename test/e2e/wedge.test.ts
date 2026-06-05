@@ -19,6 +19,7 @@ import { runGateHandler } from "../../src/tools/run_gate.js";
 import { checkStatusHandler } from "../../src/tools/check_status.js";
 import { getReportHandler } from "../../src/tools/get_report.js";
 import { setupGithubActionHandler } from "../../src/tools/setup_github_action.js";
+import { compareRunsHandler } from "../../src/tools/compare_runs.js";
 
 const apiUrl = process.env.EDGEGATE_E2E_API_URL ?? "";
 const apiKey = process.env.EDGEGATE_E2E_API_KEY ?? "";
@@ -89,6 +90,20 @@ const skip = !apiUrl || !apiKey || !wsId || !artifactId;
     });
     expect(ghaction.content[0].text).toContain(".github/workflows/edgegate.yml");
     expect(ghaction.content[0].text).toContain("gh secret set");
+
+    // Step 7: compare_runs — auto-baseline should resolve or return NO BASELINE (first run)
+    const compare = await compareRunsHandler(client, {
+      workspace_id: wsId,
+      run_id: runId!,
+    });
+    expect(compare.isError).toBeUndefined();
+    const compareText = compare.content[0].text;
+    // Must contain pipeline info and a verdict
+    expect(compareText).toContain("Run Comparison");
+    expect(compareText).toContain("Verdict");
+    // Verdict must be one of the four valid values
+    const validVerdicts = ["REGRESSION", "IMPROVEMENT", "NEUTRAL", "NO BASELINE"];
+    expect(validVerdicts.some((v) => compareText.includes(v))).toBe(true);
   });
 });
 

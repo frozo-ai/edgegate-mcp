@@ -3,6 +3,7 @@ import type {
   APIKeyCreateResponse,
   Pipeline,
   RunBundle,
+  RunComparison,
   RunDetail,
   RunSummary,
   Workspace,
@@ -93,6 +94,22 @@ export class EdgeGateClient {
     return this.request<RunSummary[]>(
       "GET",
       `/v1/workspaces/${workspaceId}/runs?limit=${limit}`
+    );
+  }
+  async listRunsByPipeline(
+    workspaceId: string,
+    pipelineId: string,
+    limit = 20
+  ): Promise<RunSummary[]> {
+    return this.request<RunSummary[]>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/runs?pipeline_id=${pipelineId}&limit=${limit}`
+    );
+  }
+  async getRunDiff(workspaceId: string, runId: string): Promise<RunComparison> {
+    return this.request<RunComparison>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/runs/${runId}/diff`
     );
   }
   async getRunBundle(workspaceId: string, runId: string): Promise<RunBundle> {

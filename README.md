@@ -67,6 +67,7 @@ See [docs/tools.md](./docs/tools.md) for the full tool reference. Quick list:
 | `edgegate_get_report` | List recent runs |
 | `edgegate_get_audit_report` | Fetch the signed audit PDF |
 | `edgegate_setup_github_action` | Generate the GitHub Actions workflow + secret commands |
+| `edgegate_compare_runs` | Diff two runs — gate flips, metric deltas, per-device breakdown, REGRESSION / IMPROVEMENT / NEUTRAL verdict |
 
 ## Skills
 

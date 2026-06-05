@@ -96,3 +96,52 @@ export interface AuditReport {
   url?: string;
   generated_at?: string;
 }
+
+// ─── Compare-runs types ────────────────────────────────────────────────────
+
+export interface MetricDelta {
+  current: number | null;
+  previous: number | null;
+  delta: number | null;
+  delta_pct: number | null;
+}
+
+export interface GateFlip {
+  metric: string;
+  /** "unchanged" | "improved" | "regressed" | "still_failing" | "new" | "removed" */
+  transition: string;
+  previous: {
+    passed: boolean | null;
+    threshold: number | null;
+    operator: string | null;
+    actual_value: number | null;
+  } | null;
+  current: {
+    passed: boolean | null;
+    threshold: number | null;
+    operator: string | null;
+    actual_value: number | null;
+  } | null;
+}
+
+export interface RunDiffPayload {
+  current_run_id: UUID;
+  previous_run_id: UUID | null;
+  current_commit: Record<string, string | null>;
+  previous_commit: Record<string, string | null> | null;
+  current_completed_at: string | null;
+  previous_completed_at: string | null;
+  metric_deltas: Record<string, MetricDelta>;
+  gate_flips: GateFlip[];
+  per_device: Record<string, Record<string, MetricDelta>> | null;
+  per_cell: unknown[] | null;
+  is_baseline: boolean;
+}
+
+export interface RunComparison {
+  current_run_id: UUID;
+  previous_run_id: UUID | null;
+  diff_sha256: string | null;
+  diff: RunDiffPayload;
+  created_at: string;
+}

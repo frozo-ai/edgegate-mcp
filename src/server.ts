@@ -18,6 +18,10 @@ import {
   setupGithubActionHandler,
   setupGithubActionInputSchema,
 } from "./tools/setup_github_action.js";
+import {
+  compareRunsHandler,
+  compareRunsInputSchema,
+} from "./tools/compare_runs.js";
 
 const TOOLS = [
   {
@@ -73,6 +77,16 @@ const TOOLS = [
       "EdgeGate as a CI gate.",
     schema: setupGithubActionInputSchema,
     handler: setupGithubActionHandler,
+  },
+  {
+    name: "edgegate_compare_runs",
+    description:
+      "Diff two EdgeGate runs in the same pipeline — metrics delta, gate flips (✓→✗ regressions " +
+      "and ✗→✓ recoveries), per-device breakdown, and an overall verdict (REGRESSION / IMPROVEMENT / " +
+      "NEUTRAL / NO BASELINE). When baseline_run_id is omitted, auto-selects the most recent " +
+      "PASSED run from the same pipeline as the baseline.",
+    schema: compareRunsInputSchema,
+    handler: compareRunsHandler,
   },
 ] as const;
 

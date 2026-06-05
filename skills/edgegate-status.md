@@ -12,3 +12,7 @@ The user wants to know how a run is doing.
 3. Render the result. If the run is FAILED, lead with the violating gate and the actual value — don't bury it.
 
 For PASSED runs, briefly summarize the metrics so the user has the numbers handy for a PR comment.
+
+## "Is this run a regression?"
+
+If the user asks whether a run is a regression, or wants to see how it compares to the previous one, call `edgegate_compare_runs` with the `run_id` (and optionally a `baseline_run_id`). The tool auto-selects the baseline from the same pipeline when no explicit baseline is given. Read the **Verdict** section of the output — REGRESSION means at least one gate flipped ✓→✗ or a lower-is-better metric increased by ≥ 25%.

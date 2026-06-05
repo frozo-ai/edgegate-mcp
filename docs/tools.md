@@ -102,3 +102,34 @@ Generate the GitHub Actions workflow YAML + the `gh secret set` commands the use
 1. The YAML to write to `.github/workflows/edgegate.yml`
 2. A code block with the `gh secret set ...` commands the user must run
 3. A link to the dashboard for generating `EDGEGATE_API_SECRET`
+
+---
+
+## `edgegate_compare_runs`
+
+Diff two EdgeGate runs in the same pipeline: per-metric deltas, gate flip classification (✓→✗ regressions, ✗→✓ recoveries), per-device breakdown (when available), and an overall verdict.
+
+**Input:**
+- `workspace_id` (string, UUID, required)
+- `run_id` (string, UUID, required) — the **candidate** run to evaluate
+- `baseline_run_id` (string, UUID, optional) — the baseline to compare against. When omitted, auto-selects:
+  1. Most recent `passed` run in the same pipeline (excluding the candidate itself)
+  2. Fallback: most recent completed run in the pipeline
+  3. If nothing qualifies: "NO BASELINE" response
+
+**Returns:** Markdown with:
+- Header: pipeline name, candidate run ID, baseline run ID, completion timestamps
+- Commit context (branch, SHA, message) when available from the signed evidence bundle
+- Metrics table: baseline value → candidate value, delta, direction (better/worse)
+- Gate status table: flip classification per gate (`passing`, `**REGRESSION** ✓→✗`, `RECOVERY ✗→✓`, `still failing`)
+- Per-device breakdown for matrix runs
+- Overall verdict: **REGRESSION**, **IMPROVEMENT**, **NEUTRAL**, or **NO BASELINE**
+- Audit trail: diff SHA-256 (signed), bundle artifact IDs for both runs
+
+**Verdict rules:**
+- REGRESSION — any gate flip ✓→✗, OR any lower-is-better metric (`inference_time_ms`, `peak_memory_mb`) increases by ≥ 25%
+- IMPROVEMENT — at least one ✗→✓ gate flip with no regressions
+- NEUTRAL — no significant gate or metric changes
+- NO BASELINE — first run in pipeline or no eligible prior run found
+
+**Errors:** `404` if the candidate run itself is not found.
