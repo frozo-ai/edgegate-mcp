@@ -43,6 +43,41 @@ export const createPipelineInputSchema = z.object({
     .optional(),
   /** Measurement repeats per cell (1–5). Defaults to API default (3). */
   repeats: z.number().int().min(1).max(5).optional(),
+  /**
+   * Optional. Override AI Hub input shapes per named input.
+   *
+   * For text models like MiniLM / BERT-family, try:
+   *   `{ input_ids: { shape: [1, 128], dtype: "int64" }, attention_mask: { shape: [1, 128], dtype: "int64" } }`
+   *
+   * For image models (e.g. MobileNet) the backend auto-detects static shapes
+   * from the ONNX file — omit this field.
+   *
+   * Omit entirely to let EdgeGate auto-detect from the ONNX file (works for most
+   * models including image classification, BERT-family, MiniLM).
+   */
+  input_specs: z
+    .record(
+      z.string(),
+      z.object({
+        shape: z
+          .array(z.number().int().positive())
+          .min(1)
+          .max(8)
+          .describe("Tensor shape (1–8 positive integers)"),
+        dtype: z
+          .enum(["float32", "float16", "int64", "int32", "bool"])
+          .default("float32")
+          .describe("Element dtype"),
+      })
+    )
+    .optional()
+    .describe(
+      "Optional. Override AI Hub input shapes per named input. " +
+        'For text models like MiniLM, try `{input_ids: {shape: [1, 128], dtype: "int64"}, ' +
+        'attention_mask: {shape: [1, 128], dtype: "int64"}}`. ' +
+        "Omit to let EdgeGate auto-detect from the ONNX file (works for most models " +
+        "including image classification, BERT-family, MiniLM)."
+    ),
 });
 
 export type CreatePipelineInput = z.infer<typeof createPipelineInputSchema>;
@@ -92,6 +127,7 @@ export async function createPipelineHandler(
       gates,
       ...(model_matrix !== undefined ? { model_matrix } : {}),
       ...(run_policy !== undefined ? { run_policy } : {}),
+      ...(input.input_specs !== undefined ? { input_specs: input.input_specs } : {}),
     });
     return {
       content: [

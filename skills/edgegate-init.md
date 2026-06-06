@@ -20,6 +20,8 @@ Goal of this skill: take the user from "I have a model file" to "every PR is aut
 
    If they hand you a file path (e.g. `./model.onnx`), tell them they need to upload it via the dashboard first to get an artifact_id (the MCP tool does not handle uploads in v1.0). Link: `https://edgegate.frozo.ai/workspace/{workspace_id}/models`.
 
+   If they hand you a HuggingFace repo id (e.g. `microsoft/resnet-50`), call `edgegate_import_huggingface_model` to import it and get an artifact_id back. If the repo is private / gated / from the Qualcomm org, the import will 401 — offer to run `/edgegate-connect-huggingface` to attach a personal HF token to the workspace, then retry the import.
+
    If they hand you an artifact_id, proceed to `edgegate_create_pipeline`.
 
 3. **Trigger the first run.** Call `edgegate_run_gate` with the workspace_id + new pipeline_id. Tell the user the run_id. Note that runs take 3-5 min per device.
@@ -27,6 +29,17 @@ Goal of this skill: take the user from "I have a model file" to "every PR is aut
 4. **Wire CI.** Ask "Should I set up the GitHub Action so every PR runs this gate?" — if yes, call `edgegate_setup_github_action`. Present the YAML and `gh` commands; tell the user to commit the YAML and run the `gh` commands.
 
 5. **Confirm.** Tell the user what's now set up: workspace `<name>`, pipeline `<name>`, run `<id>` in flight, and (if applicable) GitHub Action wired.
+
+## Input shape overrides (`input_specs`)
+
+If creating a pipeline for a text or audio model, the backend auto-resolves dynamic shapes
+(defaults: batch=1, sequence=128). If those defaults don't fit — long-context LLM, custom
+audio model, or mixed-input model — pass `input_specs` explicitly with the right shape per input.
+
+Examples:
+- Long-context BERT (seq_len=512): `{ input_ids: { shape: [1, 512], dtype: "int64" }, attention_mask: { shape: [1, 512], dtype: "int64" } }`
+- Audio model (mel-spectrogram): `{ mel_features: { shape: [1, 80, 3000], dtype: "float32" } }`
+- Image model: omit entirely — the backend reads static shapes from the ONNX file.
 
 ## Failure modes
 

@@ -42,6 +42,18 @@ import {
   publishPromptpackHandler,
   publishPromptpackInputSchema,
 } from "./tools/publish_promptpack.js";
+import {
+  connectHuggingfaceHandler,
+  connectHuggingfaceInputSchema,
+} from "./tools/connect_huggingface.js";
+import {
+  disconnectHuggingfaceHandler,
+  disconnectHuggingfaceInputSchema,
+} from "./tools/disconnect_huggingface.js";
+import {
+  getHuggingfaceIntegrationHandler,
+  getHuggingfaceIntegrationInputSchema,
+} from "./tools/get_huggingface_integration.js";
 
 const TOOLS = [
   {
@@ -155,6 +167,33 @@ const TOOLS = [
       "Requires admin role on the workspace. The operation is idempotent.",
     schema: publishPromptpackInputSchema,
     handler: publishPromptpackHandler,
+  },
+  {
+    name: "edgegate_connect_huggingface",
+    description:
+      "Store a personal HuggingFace access token for this workspace so the import flow " +
+      "can read private / gated / Qualcomm-org repos (most qualcomm/*, Intel/*, and many " +
+      "Xenova/* repos 401 the anonymous endpoint). The token is validated against HF " +
+      "whoami before encryption and is never echoed in plaintext. If an integration " +
+      "already exists this tool rotates the token. Requires admin role.",
+    schema: connectHuggingfaceInputSchema,
+    handler: connectHuggingfaceHandler,
+  },
+  {
+    name: "edgegate_get_huggingface_integration",
+    description:
+      "Show whether a personal HuggingFace token is connected to this workspace (and " +
+      "whether it is currently active or disabled). Does not return the token itself.",
+    schema: getHuggingfaceIntegrationInputSchema,
+    handler: getHuggingfaceIntegrationHandler,
+  },
+  {
+    name: "edgegate_disconnect_huggingface",
+    description:
+      "Permanently delete the workspace's HuggingFace integration. Future HF imports fall " +
+      "back to anonymous access. Requires owner role.",
+    schema: disconnectHuggingfaceInputSchema,
+    handler: disconnectHuggingfaceHandler,
   },
 ] as const;
 

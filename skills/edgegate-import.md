@@ -1,6 +1,6 @@
 ---
 name: edgegate-import
-description: Import a public Hugging Face model (ONNX) into EdgeGate. Use when the user says "import model from huggingface", "pull this HF model", or references an "<owner>/<name>" repo they want to gate.
+description: Import a Hugging Face model (ONNX) into EdgeGate. Use when the user says "import model from huggingface", "pull this HF model", or references an "<owner>/<name>" repo they want to gate. Supports both anonymous (public repos) and personal-token (private / gated / qualcomm-org repos via /edgegate-connect-huggingface) flows.
 ---
 
 # /edgegate-import
@@ -45,5 +45,5 @@ Use this skill when the user says any of:
 ## Failure modes
 
 - **"no ONNX file found"** — The repo doesn't contain a pre-built ONNX. EdgeGate v1 only supports repos with a pre-built ONNX file. Point the user to the dashboard upload flow for converting their own model: `https://edgegate.frozo.ai/workspace/<id>/models`.
-- **"private repo"** — EdgeGate v1 only imports public HuggingFace repos. Ask the user to make the repo public or use the direct upload flow instead.
+- **"private repo" / 401 from HuggingFace** — The anonymous endpoint can't read the repo (gated org like `qualcomm/*`, the user's own private repo, or a gated Llama family model). Offer to run `/edgegate-connect-huggingface` to attach a personal HF token to the workspace; once connected the same import call will succeed.
 - **402 — plan limit** — Direct the user to `https://edgegate.frozo.ai/pricing` to upgrade.

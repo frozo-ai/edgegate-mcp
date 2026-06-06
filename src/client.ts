@@ -2,6 +2,9 @@ import { USER_AGENT } from "./version.js";
 import type {
   APIKeyCreateResponse,
   HFImportJob,
+  HuggingFaceConnectResponse,
+  HuggingFaceIntegrationStatus,
+  InputSpec,
   Pipeline,
   PromptPackCreateBody,
   PromptPackSummary,
@@ -77,6 +80,9 @@ export class EdgeGateClient {
         timeout_minutes?: number;
       };
       model_matrix?: Array<{ artifact_id: string; label?: string }>;
+      /** Optional explicit AI Hub compile input shapes.  Omit to let EdgeGate
+       *  auto-detect from the ONNX file (works for most models). */
+      input_specs?: Record<string, InputSpec>;
     }
   ): Promise<Pipeline> {
     return this.request<Pipeline>("POST", `/v1/workspaces/${workspaceId}/pipelines`, body);
@@ -138,6 +144,40 @@ export class EdgeGateClient {
     return this.request<HFImportJob>(
       "GET",
       `/v1/workspaces/${workspaceId}/artifacts/import-huggingface/${jobId}`
+    );
+  }
+  async connectHuggingFaceIntegration(
+    workspaceId: string,
+    token: string
+  ): Promise<HuggingFaceConnectResponse> {
+    return this.request<HuggingFaceConnectResponse>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/integrations/huggingface`,
+      { token }
+    );
+  }
+  async rotateHuggingFaceIntegration(
+    workspaceId: string,
+    token: string
+  ): Promise<HuggingFaceConnectResponse> {
+    return this.request<HuggingFaceConnectResponse>(
+      "PUT",
+      `/v1/workspaces/${workspaceId}/integrations/huggingface/rotate`,
+      { token }
+    );
+  }
+  async getHuggingFaceIntegration(
+    workspaceId: string
+  ): Promise<HuggingFaceIntegrationStatus> {
+    return this.request<HuggingFaceIntegrationStatus>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/integrations/huggingface`
+    );
+  }
+  async deleteHuggingFaceIntegration(workspaceId: string): Promise<void> {
+    await this.request<void>(
+      "DELETE",
+      `/v1/workspaces/${workspaceId}/integrations/huggingface`
     );
   }
   async listPromptPacks(workspaceId: string): Promise<PromptPackSummary[]> {
