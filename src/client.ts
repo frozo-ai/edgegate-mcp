@@ -2,6 +2,8 @@ import { USER_AGENT } from "./version.js";
 import type {
   APIKeyCreateResponse,
   HFImportJob,
+  HuggingFaceConnectResponse,
+  HuggingFaceIntegrationStatus,
   InputSpec,
   Pipeline,
   PromptPackCreateBody,
@@ -142,6 +144,40 @@ export class EdgeGateClient {
     return this.request<HFImportJob>(
       "GET",
       `/v1/workspaces/${workspaceId}/artifacts/import-huggingface/${jobId}`
+    );
+  }
+  async connectHuggingFaceIntegration(
+    workspaceId: string,
+    token: string
+  ): Promise<HuggingFaceConnectResponse> {
+    return this.request<HuggingFaceConnectResponse>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/integrations/huggingface`,
+      { token }
+    );
+  }
+  async rotateHuggingFaceIntegration(
+    workspaceId: string,
+    token: string
+  ): Promise<HuggingFaceConnectResponse> {
+    return this.request<HuggingFaceConnectResponse>(
+      "PUT",
+      `/v1/workspaces/${workspaceId}/integrations/huggingface/rotate`,
+      { token }
+    );
+  }
+  async getHuggingFaceIntegration(
+    workspaceId: string
+  ): Promise<HuggingFaceIntegrationStatus> {
+    return this.request<HuggingFaceIntegrationStatus>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/integrations/huggingface`
+    );
+  }
+  async deleteHuggingFaceIntegration(workspaceId: string): Promise<void> {
+    await this.request<void>(
+      "DELETE",
+      `/v1/workspaces/${workspaceId}/integrations/huggingface`
     );
   }
   async listPromptPacks(workspaceId: string): Promise<PromptPackSummary[]> {

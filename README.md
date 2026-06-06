@@ -69,7 +69,10 @@ See [docs/tools.md](./docs/tools.md) for the full tool reference. Quick list:
 | `edgegate_setup_github_action` | Generate the GitHub Actions workflow + secret commands |
 | `edgegate_compare_runs` | Diff two runs — gate flips, metric deltas, per-device breakdown, REGRESSION / IMPROVEMENT / NEUTRAL verdict |
 | `edgegate_export_run_report` | Save a complete run report as a markdown file to disk (returns the file path + preview) |
-| `edgegate_import_huggingface_model` | Import a public HuggingFace ONNX model — returns artifact_id ready for `edgegate_create_pipeline` |
+| `edgegate_import_huggingface_model` | Import a HuggingFace ONNX model — returns artifact_id ready for `edgegate_create_pipeline`. Uses the workspace's personal HF token when connected; otherwise anonymous |
+| `edgegate_connect_huggingface` | Store a personal HuggingFace token in the workspace so imports can read private / gated / Qualcomm-org repos. Validated against HF whoami before encryption |
+| `edgegate_get_huggingface_integration` | Show whether a HF token is currently connected (no plaintext) |
+| `edgegate_disconnect_huggingface` | Delete the HF integration; future imports fall back to anonymous access |
 | `edgegate_list_promptpacks` | List all promptpacks in a workspace (id, version, case count, published status) |
 | `edgegate_create_promptpack` | Create a new promptpack with test cases (prompts, expected outputs, per-case overrides) |
 | `edgegate_publish_promptpack` | Publish a promptpack version so it is usable in pipelines (completes the create → publish → use lifecycle) |
@@ -84,7 +87,8 @@ Slash commands you can invoke directly:
 - `/edgegate-audit` — fetch the evidence bundle for a run
 - `/edgegate-compare` — diff two runs (auto-baseline) with REGRESSION/IMPROVEMENT/NEUTRAL verdict
 - `/edgegate-export` — save a run report as a markdown file (for PR comments, Slack, compliance)
-- `/edgegate-import` — import a public Hugging Face ONNX model and get an artifact_id
+- `/edgegate-import` — import a Hugging Face ONNX model (anonymous, or workspace-token for private / gated / qualcomm-org repos)
+- `/edgegate-connect-huggingface` — attach a personal HuggingFace token to the workspace so the import flow can read private / gated / qualcomm-org repos
 - `/edgegate-promptpacks` — list existing promptpacks or create a new one with generated test cases
 
 ## License

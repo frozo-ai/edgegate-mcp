@@ -20,6 +20,8 @@ Goal of this skill: take the user from "I have a model file" to "every PR is aut
 
    If they hand you a file path (e.g. `./model.onnx`), tell them they need to upload it via the dashboard first to get an artifact_id (the MCP tool does not handle uploads in v1.0). Link: `https://edgegate.frozo.ai/workspace/{workspace_id}/models`.
 
+   If they hand you a HuggingFace repo id (e.g. `microsoft/resnet-50`), call `edgegate_import_huggingface_model` to import it and get an artifact_id back. If the repo is private / gated / from the Qualcomm org, the import will 401 — offer to run `/edgegate-connect-huggingface` to attach a personal HF token to the workspace, then retry the import.
+
    If they hand you an artifact_id, proceed to `edgegate_create_pipeline`.
 
 3. **Trigger the first run.** Call `edgegate_run_gate` with the workspace_id + new pipeline_id. Tell the user the run_id. Note that runs take 3-5 min per device.

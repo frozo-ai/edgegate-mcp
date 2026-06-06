@@ -111,6 +111,32 @@ export interface WorkflowTemplate {
   secret_names: string[];
 }
 
+// ─── HuggingFace integration types ────────────────────────────────────────
+
+/**
+ * Returned by GET /integrations/huggingface — status without the token.
+ * The plaintext token is never echoed; only the last 4 chars + lifecycle
+ * fields are visible after the initial connect/rotate call.
+ */
+export interface HuggingFaceIntegrationStatus {
+  id: UUID;
+  provider: "huggingface";
+  status: "active" | "disabled";
+  token_last4: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Returned by POST /integrations/huggingface and the rotate endpoint.
+ * Includes the whoami account name/type so the caller can confirm the
+ * right account was connected, without leaking the secret.
+ */
+export interface HuggingFaceConnectResponse extends HuggingFaceIntegrationStatus {
+  account_name: string;
+  account_type: string;
+}
+
 /** @deprecated Not used — audit-report endpoint does not exist; use RunBundle instead. */
 export interface AuditReport {
   url?: string;
