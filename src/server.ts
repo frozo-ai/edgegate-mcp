@@ -54,6 +54,50 @@ import {
   getHuggingfaceIntegrationHandler,
   getHuggingfaceIntegrationInputSchema,
 } from "./tools/get_huggingface_integration.js";
+import {
+  connectQaihubHandler,
+  connectQaihubInputSchema,
+} from "./tools/connect_qaihub.js";
+import {
+  getQaihubIntegrationHandler,
+  getQaihubIntegrationInputSchema,
+} from "./tools/get_qaihub_integration.js";
+import {
+  disconnectQaihubHandler,
+  disconnectQaihubInputSchema,
+} from "./tools/disconnect_qaihub.js";
+import {
+  createWorkspaceHandler,
+  createWorkspaceInputSchema,
+} from "./tools/create_workspace.js";
+import {
+  listApiKeysHandler,
+  listApiKeysInputSchema,
+} from "./tools/list_api_keys.js";
+import {
+  createApiKeyHandler,
+  createApiKeyInputSchema,
+} from "./tools/create_api_key.js";
+import {
+  revokeApiKeyHandler,
+  revokeApiKeyInputSchema,
+} from "./tools/revoke_api_key.js";
+import {
+  listMembersHandler,
+  listMembersInputSchema,
+} from "./tools/list_members.js";
+import {
+  inviteMemberHandler,
+  inviteMemberInputSchema,
+} from "./tools/invite_member.js";
+import {
+  changeMemberRoleHandler,
+  changeMemberRoleInputSchema,
+} from "./tools/change_member_role.js";
+import {
+  removeMemberHandler,
+  removeMemberInputSchema,
+} from "./tools/remove_member.js";
 
 const TOOLS = [
   {
@@ -194,6 +238,104 @@ const TOOLS = [
       "back to anonymous access. Requires owner role.",
     schema: disconnectHuggingfaceInputSchema,
     handler: disconnectHuggingfaceHandler,
+  },
+  {
+    name: "edgegate_connect_qaihub",
+    description:
+      "Store a Qualcomm AI Hub API token for this workspace so EdgeGate can submit " +
+      "compile + profile jobs on real Snapdragon devices. The token is encrypted at " +
+      "rest and is never returned in plaintext after the initial connect. If an " +
+      "integration already exists this tool transparently rotates the token. Requires " +
+      "admin role.",
+    schema: connectQaihubInputSchema,
+    handler: connectQaihubHandler,
+  },
+  {
+    name: "edgegate_get_qaihub_integration",
+    description:
+      "Show whether a Qualcomm AI Hub token is connected to this workspace and " +
+      "whether it is currently active. Does not return the token itself.",
+    schema: getQaihubIntegrationInputSchema,
+    handler: getQaihubIntegrationHandler,
+  },
+  {
+    name: "edgegate_disconnect_qaihub",
+    description:
+      "Permanently delete the workspace's Qualcomm AI Hub integration. Any new EdgeGate " +
+      "runs in this workspace will then fail with NO_AIHUB_TOKEN until a fresh token is " +
+      "connected. Requires owner role.",
+    schema: disconnectQaihubInputSchema,
+    handler: disconnectQaihubHandler,
+  },
+  {
+    name: "edgegate_create_workspace",
+    description:
+      "Create a new EdgeGate workspace. The caller automatically becomes the owner. " +
+      "Subject to plan-tier workspace limits. After creation, connect Qualcomm AI Hub " +
+      "and define pipelines as usual.",
+    schema: createWorkspaceInputSchema,
+    handler: createWorkspaceHandler,
+  },
+  {
+    name: "edgegate_list_api_keys",
+    description:
+      "List all API keys in this workspace (id, name, prefix...suffix, status, last_used). " +
+      "Plaintext is never returned. Requires owner role.",
+    schema: listApiKeysInputSchema,
+    handler: listApiKeysHandler,
+  },
+  {
+    name: "edgegate_create_api_key",
+    description:
+      "Create a new API key for this workspace. The plaintext token is returned EXACTLY " +
+      "ONCE in the response — copy it to your CI secrets or local env immediately. " +
+      "Requires Pro tier or above. Requires owner role.",
+    schema: createApiKeyInputSchema,
+    handler: createApiKeyHandler,
+  },
+  {
+    name: "edgegate_revoke_api_key",
+    description:
+      "Revoke an API key by id. The key is immediately rejected for all subsequent " +
+      "requests; the row is preserved (with revoked_at set) so the audit trail survives. " +
+      "Destructive. Requires owner role.",
+    schema: revokeApiKeyInputSchema,
+    handler: revokeApiKeyHandler,
+  },
+  {
+    name: "edgegate_list_members",
+    description:
+      "List all members of this workspace with their email + role. Requires at least " +
+      "viewer role.",
+    schema: listMembersInputSchema,
+    handler: listMembersHandler,
+  },
+  {
+    name: "edgegate_invite_member",
+    description:
+      "Add an existing EdgeGate user to this workspace by email at the given role " +
+      "(owner / admin / viewer). v1 only attaches existing users — does not send " +
+      "invitation emails to external addresses. Requires admin role; only owners can " +
+      "add other owners.",
+    schema: inviteMemberInputSchema,
+    handler: inviteMemberHandler,
+  },
+  {
+    name: "edgegate_change_member_role",
+    description:
+      "Change a member's role in this workspace. Cannot downgrade the last owner — " +
+      "promote another member to owner first. Requires owner role.",
+    schema: changeMemberRoleInputSchema,
+    handler: changeMemberRoleHandler,
+  },
+  {
+    name: "edgegate_remove_member",
+    description:
+      "Remove a member from this workspace. The user loses access immediately; their " +
+      "pipelines and runs are preserved. Cannot remove the last owner. Destructive. " +
+      "Requires owner role.",
+    schema: removeMemberInputSchema,
+    handler: removeMemberHandler,
   },
 ] as const;
 

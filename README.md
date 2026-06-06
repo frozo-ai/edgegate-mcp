@@ -73,6 +73,17 @@ See [docs/tools.md](./docs/tools.md) for the full tool reference. Quick list:
 | `edgegate_connect_huggingface` | Store a personal HuggingFace token in the workspace so imports can read private / gated / Qualcomm-org repos. Validated against HF whoami before encryption |
 | `edgegate_get_huggingface_integration` | Show whether a HF token is currently connected (no plaintext) |
 | `edgegate_disconnect_huggingface` | Delete the HF integration; future imports fall back to anonymous access |
+| `edgegate_connect_qaihub` | Connect / rotate a Qualcomm AI Hub token (encrypted at rest, never returned in plaintext) |
+| `edgegate_get_qaihub_integration` | Show the connection status of the workspace's AI Hub token |
+| `edgegate_disconnect_qaihub` | Permanently delete the AI Hub integration |
+| `edgegate_create_workspace` | Create a new workspace (caller becomes owner) |
+| `edgegate_list_api_keys` | List API keys in the workspace (no plaintext) |
+| `edgegate_create_api_key` | Mint a new API key — plaintext returned exactly once |
+| `edgegate_revoke_api_key` | Revoke an API key by id (audit row preserved) |
+| `edgegate_list_members` | List members + roles |
+| `edgegate_invite_member` | Add an existing EdgeGate user to the workspace at a given role |
+| `edgegate_change_member_role` | Change a member's role (cannot downgrade the last owner) |
+| `edgegate_remove_member` | Remove a member (their pipelines/runs are preserved) |
 | `edgegate_list_promptpacks` | List all promptpacks in a workspace (id, version, case count, published status) |
 | `edgegate_create_promptpack` | Create a new promptpack with test cases (prompts, expected outputs, per-case overrides) |
 | `edgegate_publish_promptpack` | Publish a promptpack version so it is usable in pipelines (completes the create → publish → use lifecycle) |
@@ -89,6 +100,9 @@ Slash commands you can invoke directly:
 - `/edgegate-export` — save a run report as a markdown file (for PR comments, Slack, compliance)
 - `/edgegate-import` — import a Hugging Face ONNX model (anonymous, or workspace-token for private / gated / qualcomm-org repos)
 - `/edgegate-connect-huggingface` — attach a personal HuggingFace token to the workspace so the import flow can read private / gated / qualcomm-org repos
+- `/edgegate-connect-qaihub` — connect a Qualcomm AI Hub token so runs can actually compile and profile on Snapdragon devices
+- `/edgegate-workspace-setup` — bootstrap a brand-new workspace end-to-end (create → connect AI Hub → API key → invite teammates)
+- `/edgegate-members` — list / invite / change role / remove workspace members
 - `/edgegate-promptpacks` — list existing promptpacks or create a new one with generated test cases
 
 ## License

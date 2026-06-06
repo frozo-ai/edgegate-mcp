@@ -13,6 +13,10 @@ Goal of this skill: take the user from "I have a model file" to "every PR is aut
 
 1. **Confirm workspace.** Call `edgegate_setup_workspace` with no args. Present the list. Ask the user which one to use; if they say "the first one", pick `result[0].id`. Confirm before continuing.
 
+   If the list is empty OR the user wants a new workspace for this project, route to `/edgegate-workspace-setup` instead — that flow creates the workspace, connects Qualcomm AI Hub, optionally mints an API key for CI, and optionally invites teammates, all from chat.
+
+   If they have a workspace but it's missing the Qualcomm AI Hub integration (runs would fail with `NO_AIHUB_TOKEN`), run `/edgegate-connect-qaihub` first.
+
 2. **Define the pipeline.** Ask the user:
    - "Which model file do you want to gate? (path or artifact_id)"
    - "Which Snapdragon devices? (default: Samsung Galaxy S24, Galaxy S23)"

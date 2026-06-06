@@ -1,19 +1,24 @@
 import { USER_AGENT } from "./version.js";
 import type {
   APIKeyCreateResponse,
+  APIKeyCreatedResponse,
+  APIKeyListItem,
   HFImportJob,
   HuggingFaceConnectResponse,
   HuggingFaceIntegrationStatus,
   InputSpec,
+  Member,
   Pipeline,
   PromptPackCreateBody,
   PromptPackSummary,
+  QaihubIntegration,
   RunBundle,
   RunComparison,
   RunDetail,
   RunSummary,
   Workspace,
   WorkflowTemplate,
+  WorkspaceRole,
 } from "./types.js";
 
 export interface EdgeGateClientOptions {
@@ -180,6 +185,105 @@ export class EdgeGateClient {
       `/v1/workspaces/${workspaceId}/integrations/huggingface`
     );
   }
+
+  // Qualcomm AI Hub integration ─────────────────────────────────────────
+  async connectQaihubIntegration(
+    workspaceId: string,
+    token: string
+  ): Promise<QaihubIntegration> {
+    return this.request<QaihubIntegration>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/integrations/qaihub`,
+      { token }
+    );
+  }
+  async rotateQaihubIntegration(
+    workspaceId: string,
+    token: string
+  ): Promise<QaihubIntegration> {
+    return this.request<QaihubIntegration>(
+      "PUT",
+      `/v1/workspaces/${workspaceId}/integrations/qaihub/rotate`,
+      { token }
+    );
+  }
+  async getQaihubIntegration(workspaceId: string): Promise<QaihubIntegration> {
+    return this.request<QaihubIntegration>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/integrations/qaihub`
+    );
+  }
+  async deleteQaihubIntegration(workspaceId: string): Promise<void> {
+    await this.request<void>(
+      "DELETE",
+      `/v1/workspaces/${workspaceId}/integrations/qaihub`
+    );
+  }
+
+  // Workspace CRUD ─────────────────────────────────────────────────────
+  async createWorkspace(name: string): Promise<Workspace> {
+    return this.request<Workspace>("POST", `/v1/workspaces`, { name });
+  }
+
+  // API keys ───────────────────────────────────────────────────────────
+  async listApiKeys(workspaceId: string): Promise<APIKeyListItem[]> {
+    return this.request<APIKeyListItem[]>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/api-keys`
+    );
+  }
+  async createApiKey(
+    workspaceId: string,
+    body: { name: string; expires_at?: string | null }
+  ): Promise<APIKeyCreatedResponse> {
+    return this.request<APIKeyCreatedResponse>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/api-keys`,
+      body
+    );
+  }
+  async revokeApiKey(workspaceId: string, keyId: string): Promise<void> {
+    await this.request<void>(
+      "DELETE",
+      `/v1/workspaces/${workspaceId}/api-keys/${keyId}`
+    );
+  }
+
+  // Members ────────────────────────────────────────────────────────────
+  async listMembers(workspaceId: string): Promise<Member[]> {
+    return this.request<Member[]>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/members`
+    );
+  }
+  async addMember(
+    workspaceId: string,
+    body: { user_email: string; role: WorkspaceRole }
+  ): Promise<Member> {
+    return this.request<Member>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/members`,
+      body
+    );
+  }
+  async updateMemberRole(
+    workspaceId: string,
+    userId: string,
+    role: WorkspaceRole
+  ): Promise<Member> {
+    return this.request<Member>(
+      "PUT",
+      `/v1/workspaces/${workspaceId}/members/${userId}`,
+      { role }
+    );
+  }
+  async removeMember(workspaceId: string, userId: string): Promise<void> {
+    await this.request<void>(
+      "DELETE",
+      `/v1/workspaces/${workspaceId}/members/${userId}`
+    );
+  }
+
   async listPromptPacks(workspaceId: string): Promise<PromptPackSummary[]> {
     return this.request<PromptPackSummary[]>(
       "GET",
