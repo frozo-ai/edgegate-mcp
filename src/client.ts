@@ -3,6 +3,10 @@ import type {
   APIKeyCreateResponse,
   APIKeyCreatedResponse,
   APIKeyListItem,
+  ArtifactResponse,
+  ByoArtifactRegisterRequest,
+  ByoAuditPage,
+  ByoGrant,
   HFImportJob,
   HuggingFaceConnectResponse,
   HuggingFaceIntegrationStatus,
@@ -308,6 +312,73 @@ export class EdgeGateClient {
     return this.request<PromptPackSummary>(
       "PUT",
       `/v1/workspaces/${workspaceId}/promptpacks/${promptpackId}/${version}/publish`
+    );
+  }
+
+  // BYO storage (Enterprise) ────────────────────────────────────────────
+  async registerByoGrant(
+    workspaceId: string,
+    body: {
+      role_arn: string;
+      bucket: string;
+      region: string;
+      kms_key_id?: string;
+    }
+  ): Promise<ByoGrant> {
+    return this.request<ByoGrant>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/byo-storage/grants`,
+      body
+    );
+  }
+  async getByoGrant(workspaceId: string): Promise<ByoGrant> {
+    return this.request<ByoGrant>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/byo-storage/grants`
+    );
+  }
+  async verifyByoGrant(workspaceId: string): Promise<ByoGrant> {
+    return this.request<ByoGrant>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/byo-storage/grants/verify`
+    );
+  }
+  async deleteByoGrant(workspaceId: string): Promise<void> {
+    await this.request<void>(
+      "DELETE",
+      `/v1/workspaces/${workspaceId}/byo-storage/grants`
+    );
+  }
+  async registerByoArtifact(
+    workspaceId: string,
+    body: ByoArtifactRegisterRequest
+  ): Promise<ArtifactResponse> {
+    return this.request<ArtifactResponse>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/artifacts/byo`,
+      body
+    );
+  }
+  async getByoAudit(
+    workspaceId: string,
+    params: {
+      artifact_id?: string;
+      run_id?: string;
+      since?: string;
+      cursor?: number;
+      limit?: number;
+    } = {}
+  ): Promise<ByoAuditPage> {
+    const qs = new URLSearchParams();
+    if (params.artifact_id) qs.set("artifact_id", params.artifact_id);
+    if (params.run_id) qs.set("run_id", params.run_id);
+    if (params.since) qs.set("since", params.since);
+    if (typeof params.cursor === "number") qs.set("cursor", String(params.cursor));
+    if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.request<ByoAuditPage>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/byo-storage/audit${suffix}`
     );
   }
 

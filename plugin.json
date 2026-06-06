@@ -1,6 +1,6 @@
 {
   "name": "edgegate",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Edge-AI regression gates from Claude Code — set up CI, run benchmarks, compare runs, export reports, and fetch audit bundles from any prompt.",
   "author": "Frozo / EdgeGate",
   "homepage": "https://edgegate.frozo.ai",
@@ -29,6 +29,7 @@
     "skills/edgegate-connect-huggingface.md",
     "skills/edgegate-connect-qaihub.md",
     "skills/edgegate-workspace-setup.md",
-    "skills/edgegate-members.md"
+    "skills/edgegate-members.md",
+    "skills/edgegate-byo-storage.md"
   ]
 }

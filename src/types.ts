@@ -318,3 +318,95 @@ export interface PromptPackCreateBody {
   version: string;
   content: PromptPackContent;
 }
+
+// ─── BYO storage (Enterprise) types ───────────────────────────────────────
+
+/**
+ * Workspace's customer-owned S3 bucket grant. Returned by every grant
+ * endpoint (register / get / verify / rotate-external-id).
+ *
+ * `external_id` is shown in EVERY response — it's the value the customer
+ * has to paste into their IAM role trust policy's `sts:ExternalId`
+ * condition. We don't treat it like a secret because the trust policy
+ * already pins our AWS account as the only principal that can use it.
+ *
+ * `status` semantics: "active" = last probe passed; "failed" = last probe
+ * raised (with `last_verify_error` populated); "revoked" = grant was
+ * explicitly deleted (404 on /grants thereafter).
+ */
+export interface ByoGrant {
+  id: UUID;
+  workspace_id: UUID;
+  role_arn: string;
+  external_id: UUID;
+  bucket: string;
+  region: string;
+  kms_key_id: string | null;
+  status: "active" | "revoked" | "failed";
+  last_verified_at: string | null;
+  last_verify_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Request body for POST /v1/workspaces/{ws}/artifacts/byo.
+ * Registers an existing S3 URI in the customer's grant-registered bucket
+ * as an Artifact pointer. EdgeGate does NOT upload bytes — it HeadObjects
+ * the URI to confirm existence + capture size/etag.
+ */
+export interface ByoArtifactRegisterRequest {
+  s3_uri: string;
+  expected_sha256?: string;
+  expected_size?: number;
+  kind?: string;
+  original_filename?: string;
+}
+
+/**
+ * One row from the workspace's append-only `byo_storage_audit` table.
+ * `aws_request_id` is the join key for cross-referencing the customer's
+ * own CloudTrail. Nullable fields are by design for events that don't
+ * produce them (verify_probe has no run_id/artifact_id, etc.).
+ */
+export interface ByoAuditEntry {
+  id: number;
+  event_type: string;
+  aws_request_id: string;
+  role_arn: string;
+  bucket: string;
+  s3_key: string | null;
+  bytes_read: number | null;
+  worker_hostname: string | null;
+  outcome: string;
+  error_code: string | null;
+  artifact_id: UUID | null;
+  run_id: UUID | null;
+  ts: string;
+}
+
+/**
+ * Paginated audit-log page. `next_cursor === null` means the response
+ * contained the last page. Pass the value back as the `cursor` query
+ * param to fetch the next page.
+ */
+export interface ByoAuditPage {
+  entries: ByoAuditEntry[];
+  next_cursor: number | null;
+}
+
+/**
+ * Returned by POST /artifacts and POST /artifacts/byo. Mirrors the
+ * backend `ArtifactResponse` schema. `storage_url` for BYO artifacts is
+ * `byo-s3://{bucket}/{key}` rather than the managed `s3://...` form.
+ */
+export interface ArtifactResponse {
+  id: UUID;
+  kind: string;
+  sha256: string;
+  size_bytes: number;
+  original_filename: string | null;
+  storage_url: string;
+  created_at: string;
+  expires_at: string | null;
+}

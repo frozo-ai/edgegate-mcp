@@ -4,7 +4,7 @@ MCP server for [EdgeGate](https://edgegate.frozo.ai) — set up edge-AI regressi
 
 ## What does it do?
 
-EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 13 MCP tools, plus bundled skills, so you can drive the whole flow from a prompt:
+EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 30+ MCP tools, plus bundled skills, so you can drive the whole flow from a prompt:
 
 ```
 > Use the edgegate MCP to set up a CI gate for my MobileNet ONNX model.
@@ -87,6 +87,11 @@ See [docs/tools.md](./docs/tools.md) for the full tool reference. Quick list:
 | `edgegate_list_promptpacks` | List all promptpacks in a workspace (id, version, case count, published status) |
 | `edgegate_create_promptpack` | Create a new promptpack with test cases (prompts, expected outputs, per-case overrides) |
 | `edgegate_publish_promptpack` | Publish a promptpack version so it is usable in pipelines (completes the create → publish → use lifecycle) |
+| `edgegate_register_byo_bucket` | **Enterprise.** Register the workspace's own S3 bucket + IAM role as a BYO storage grant. Returns the External ID to paste into the role's trust policy |
+| `edgegate_check_byo_bucket` | **Enterprise.** Re-run the AssumeRole + HeadObject readiness probe; renders the typed `BYO_*` error code with a fix checklist |
+| `edgegate_register_byo_artifact` | **Enterprise.** Register an existing `s3://<bucket>/<key>` URI as an EdgeGate Artifact (no bytes uploaded — HeadObject only). Returns an `artifact_id` ready for `edgegate_create_pipeline` |
+| `edgegate_disconnect_byo_bucket` | **Enterprise.** Delete the BYO grant. Refuses (409) if artifacts still reference it |
+| `edgegate_get_byo_audit` | **Enterprise.** Paginated append-only audit log of every AssumeRole / HeadObject / GetObject / KMS Decrypt call. `aws_request_id` joins to your own CloudTrail |
 
 ## Skills
 
@@ -104,6 +109,7 @@ Slash commands you can invoke directly:
 - `/edgegate-workspace-setup` — bootstrap a brand-new workspace end-to-end (create → connect AI Hub → API key → invite teammates)
 - `/edgegate-members` — list / invite / change role / remove workspace members
 - `/edgegate-promptpacks` — list existing promptpacks or create a new one with generated test cases
+- `/edgegate-byo-storage` — Enterprise BYO storage onboarding (register grant → paste External ID → verify probe → first artifact → first run → audit log)
 
 ## License
 
