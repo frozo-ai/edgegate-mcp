@@ -98,6 +98,26 @@ import {
   removeMemberHandler,
   removeMemberInputSchema,
 } from "./tools/remove_member.js";
+import {
+  registerByoBucketHandler,
+  registerByoBucketInputSchema,
+} from "./tools/register_byo_bucket.js";
+import {
+  checkByoBucketHandler,
+  checkByoBucketInputSchema,
+} from "./tools/check_byo_bucket.js";
+import {
+  registerByoArtifactHandler,
+  registerByoArtifactInputSchema,
+} from "./tools/register_byo_artifact.js";
+import {
+  disconnectByoBucketHandler,
+  disconnectByoBucketInputSchema,
+} from "./tools/disconnect_byo_bucket.js";
+import {
+  getByoAuditHandler,
+  getByoAuditInputSchema,
+} from "./tools/get_byo_audit.js";
 
 const TOOLS = [
   {
@@ -336,6 +356,59 @@ const TOOLS = [
       "Requires owner role.",
     schema: removeMemberInputSchema,
     handler: removeMemberHandler,
+  },
+  {
+    name: "edgegate_register_byo_bucket",
+    description:
+      "Enterprise only. Register the workspace's customer-owned S3 bucket + IAM role " +
+      "as a BYO storage grant. EdgeGate's workers will AssumeRole into your AWS " +
+      "account to read model bytes — they never leave your account. Returns the " +
+      "External ID you must add to your role's trust policy. Requires owner role. " +
+      "402 from non-Enterprise workspaces; 409 if a grant already exists (does NOT " +
+      "auto-rotate — disconnect + re-register or rotate via dashboard).",
+    schema: registerByoBucketInputSchema,
+    handler: registerByoBucketHandler,
+  },
+  {
+    name: "edgegate_check_byo_bucket",
+    description:
+      "Re-run the AssumeRole + HeadObject readiness probe against the workspace's " +
+      "BYO grant. Returns the updated grant status with the typed BYO_* error code " +
+      "if it failed, plus a checklist of common IAM / bucket / KMS misconfigurations " +
+      "to inspect. Requires admin role.",
+    schema: checkByoBucketInputSchema,
+    handler: checkByoBucketHandler,
+  },
+  {
+    name: "edgegate_register_byo_artifact",
+    description:
+      "Register an existing S3 URI in your registered bucket as an EdgeGate Artifact. " +
+      "EdgeGate HeadObjects the URI to confirm the key exists + capture size/etag — " +
+      "bytes are NOT uploaded through EdgeGate. Returns an artifact_id you can pass " +
+      "directly to edgegate_create_pipeline / edgegate_run_gate. Requires admin role. " +
+      "Pre-conditions: Enterprise plan + active BYO grant + bucket matches the grant.",
+    schema: registerByoArtifactInputSchema,
+    handler: registerByoArtifactHandler,
+  },
+  {
+    name: "edgegate_disconnect_byo_bucket",
+    description:
+      "Delete the workspace's BYO storage grant. EdgeGate stops attempting to read " +
+      "from your bucket. Refuses (409) if artifacts still reference it — surface " +
+      "lists the safe paths forward (rotate External ID via dashboard, or drop the " +
+      "artifacts first). Destructive. Requires owner role.",
+    schema: disconnectByoBucketInputSchema,
+    handler: disconnectByoBucketHandler,
+  },
+  {
+    name: "edgegate_get_byo_audit",
+    description:
+      "Fetch the workspace's append-only BYO storage audit log (every AssumeRole, " +
+      "HeadObject, GetObject, KMS Decrypt). Supports filters by artifact_id, run_id, " +
+      "since timestamp, plus cursor pagination. Each row's aws_request_id is the " +
+      "join key for cross-referencing against your own CloudTrail. Requires admin role.",
+    schema: getByoAuditInputSchema,
+    handler: getByoAuditHandler,
   },
 ] as const;
 
