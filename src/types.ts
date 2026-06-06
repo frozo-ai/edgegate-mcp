@@ -137,6 +137,63 @@ export interface HuggingFaceConnectResponse extends HuggingFaceIntegrationStatus
   account_type: string;
 }
 
+// ─── Qualcomm AI Hub integration types ────────────────────────────────────
+
+/**
+ * Returned by GET / POST / PUT on /integrations/qaihub.
+ * The plaintext token is never echoed; only token_last4 is visible.
+ */
+export interface QaihubIntegration {
+  id: UUID;
+  provider: "qaihub";
+  status: "active" | "disabled";
+  token_last4: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── API key management types ─────────────────────────────────────────────
+
+/**
+ * Returned by POST /workspaces/{ws}/api-keys.
+ * `plaintext` is the only time the full key is visible — the caller must
+ * persist it immediately; the backend stores only a bcrypt hash.
+ */
+export interface APIKeyCreatedResponse {
+  id: UUID;
+  plaintext: string;
+  name: string;
+  prefix: string;
+  suffix: string;
+  created_at: string;
+  expires_at: string | null;
+}
+
+/**
+ * Returned by GET /workspaces/{ws}/api-keys (one row per key).
+ * Includes lifecycle fields but never the plaintext or the hash.
+ */
+export interface APIKeyListItem {
+  id: UUID;
+  name: string;
+  prefix: string;
+  suffix: string;
+  last_used_at: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+// ─── Workspace + member management types ──────────────────────────────────
+
+export type WorkspaceRole = "owner" | "admin" | "viewer";
+
+export interface Member {
+  user_id: UUID;
+  email: string;
+  role: WorkspaceRole;
+}
+
 /** @deprecated Not used — audit-report endpoint does not exist; use RunBundle instead. */
 export interface AuditReport {
   url?: string;
