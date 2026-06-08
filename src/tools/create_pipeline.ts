@@ -25,7 +25,22 @@ export const createPipelineInputSchema = z.object({
   gates: z
     .array(
       z.object({
-        metric: z.enum(["inference_time_ms", "peak_memory_mb", "throughput_tps"]),
+        metric: z.enum([
+          // Stable — populated for every model AI Hub profiles successfully.
+          "inference_time_ms",
+          "peak_memory_mb",
+          // Compute-unit breakdown — fires when AI Hub returns the per-IP
+          // split. npu_compute_percent is the killer gate for "did silent
+          // fallback to GPU/CPU happen?" — that's the EdgeGate value prop.
+          "npu_compute_percent",
+          "gpu_compute_percent",
+          "cpu_compute_percent",
+          // LLM-only — resolve to "Metric not available" on vision/audio
+          // models. Backend names them `ttft_ms` and `tps` (NOT the legacy
+          // `throughput_tps` we used to ship here).
+          "ttft_ms",
+          "tps",
+        ]),
         operator: z.enum(["<=", "<", ">=", ">", "=="]),
         threshold: z.number().positive(),
         description: z.string().optional(),

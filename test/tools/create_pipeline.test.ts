@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { EdgeGateClient } from "../../src/client.js";
-import { createPipelineHandler } from "../../src/tools/create_pipeline.js";
+import {
+  createPipelineHandler,
+  createPipelineInputSchema,
+} from "../../src/tools/create_pipeline.js";
 
 const apiUrl = "https://api.test";
 const apiKey = "egk_test_x";
@@ -140,6 +143,66 @@ describe("create_pipeline tool", () => {
     });
 
     expect((receivedBody as Record<string, unknown>).model_matrix).toBeUndefined();
+  });
+
+  it("accepts every gate metric the backend's VALID_METRICS supports", async () => {
+    // Regression: the MCP enum used to be {inference_time_ms, peak_memory_mb,
+    // throughput_tps} — missing the compute-unit split (npu/gpu/cpu_compute_percent)
+    // and the LLM metrics (ttft_ms, tps), plus `throughput_tps` was a
+    // legacy name the backend never accepted. This test pins the contract
+    // to exactly the seven metrics in edgegate.services.pipeline.VALID_METRICS.
+    let receivedBody: unknown = null;
+    server.use(
+      http.post(`${apiUrl}/v1/workspaces/${wsId}/pipelines`, async ({ request }) => {
+        receivedBody = await request.json();
+        return HttpResponse.json(mockPipelineResponse, { status: 201 });
+      })
+    );
+
+    const client = new EdgeGateClient({ apiUrl, apiKey });
+    const result = await createPipelineHandler(client, {
+      workspace_id: wsId,
+      name: "All-gate-types",
+      promptpack_id: "bench-v1",
+      devices: ["d1"],
+      gates: [
+        { metric: "inference_time_ms", operator: "<=", threshold: 10 },
+        { metric: "peak_memory_mb", operator: "<=", threshold: 500 },
+        { metric: "npu_compute_percent", operator: ">=", threshold: 70 },
+        { metric: "gpu_compute_percent", operator: "<=", threshold: 30 },
+        { metric: "cpu_compute_percent", operator: "<=", threshold: 20 },
+        { metric: "ttft_ms", operator: "<=", threshold: 1500 },
+        { metric: "tps", operator: ">=", threshold: 10 },
+      ],
+    });
+
+    expect(result.isError).toBeUndefined();
+    expect((receivedBody as Record<string, unknown>).gates).toHaveLength(7);
+  });
+
+  it("rejects the legacy throughput_tps metric at the schema level (renamed to tps)", async () => {
+    // The MCP protocol layer validates input via the input schema before
+    // invoking the handler, so test the schema directly. Backend's
+    // VALID_METRICS uses `tps`, never `throughput_tps`.
+    const result = createPipelineInputSchema.safeParse({
+      workspace_id: wsId,
+      name: "Legacy throughput_tps",
+      promptpack_id: "bench-v1",
+      devices: ["d1"],
+      gates: [{ metric: "throughput_tps", operator: ">=", threshold: 10 }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unknown metrics not in VALID_METRICS", async () => {
+    const result = createPipelineInputSchema.safeParse({
+      workspace_id: wsId,
+      name: "Made-up metric",
+      promptpack_id: "bench-v1",
+      devices: ["d1"],
+      gates: [{ metric: "fps", operator: ">=", threshold: 30 }],
+    });
+    expect(result.success).toBe(false);
   });
 
   it("rejects a 25+ cell matrix client-side (multi-model)", async () => {
