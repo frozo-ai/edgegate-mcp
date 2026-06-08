@@ -184,6 +184,31 @@ export interface APIKeyListItem {
   created_at: string;
 }
 
+// ─── AI Hub device catalog ─────────────────────────────────────────────────
+
+export type DeviceCategory =
+  | "smartphone"
+  | "reference"
+  | "compute"
+  | "iot"
+  | "automotive"
+  | "xr"
+  | "other";
+
+export interface DeviceEntry {
+  /** Short alias EdgeGate uses (e.g. 'sm8650'). Stable across pipeline configs. */
+  id: string;
+  /** Canonical AI Hub device name (e.g. 'Samsung Galaxy S24 (Family)'). */
+  name: string;
+  /** Form-factor / use case bucket. */
+  category: DeviceCategory;
+}
+
+export interface DeviceListResponse {
+  devices: DeviceEntry[];
+  total: number;
+}
+
 // ─── Workspace + member management types ──────────────────────────────────
 
 export type WorkspaceRole = "owner" | "admin" | "viewer";

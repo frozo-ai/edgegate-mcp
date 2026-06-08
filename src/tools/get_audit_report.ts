@@ -32,7 +32,13 @@ export async function getAuditReportHandler(
       lines.push(``);
     }
 
-    if (bundle.gates_eval) {
+    // gates_eval can be {} without a gates array on runs that errored
+    // before evaluation. Guard or this crashes with "not iterable".
+    if (
+      bundle.gates_eval &&
+      Array.isArray(bundle.gates_eval.gates) &&
+      bundle.gates_eval.gates.length > 0
+    ) {
       lines.push(`### Gate Decisions`);
       for (const gate of bundle.gates_eval.gates) {
         const sym = gate.passed ? "✓" : "✗";

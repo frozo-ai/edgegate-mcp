@@ -1,6 +1,6 @@
 {
   "name": "edgegate-mcp",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "MCP server for EdgeGate — set up edge-AI regression gates from Claude Code, Cursor, or Claude Desktop.",
   "license": "MIT",
   "type": "module",

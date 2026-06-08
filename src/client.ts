@@ -7,6 +7,7 @@ import type {
   ByoArtifactRegisterRequest,
   ByoAuditPage,
   ByoGrant,
+  DeviceListResponse,
   HFImportJob,
   HuggingFaceConnectResponse,
   HuggingFaceIntegrationStatus,
@@ -64,6 +65,9 @@ export class EdgeGateClient {
   }
   async listWorkspaces(): Promise<Workspace[]> {
     return this.request<Workspace[]>("GET", `/v1/workspaces`);
+  }
+  async listDevices(): Promise<DeviceListResponse> {
+    return this.request<DeviceListResponse>("GET", `/v1/aihub/devices`);
   }
   async createAPIKey(
     workspaceId: string,

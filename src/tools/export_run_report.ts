@@ -257,8 +257,11 @@ function renderReport(
   }
 
   // ── Gate Results ──
+  // gates_eval can be {} without a `gates` array on runs that errored
+  // before evaluation. `.gates.length` on undefined would crash the export
+  // for any failed run. Guard before reading.
   const gatesEval = bundle?.gates_eval ?? run.gates_eval;
-  if (gatesEval && gatesEval.gates.length > 0) {
+  if (gatesEval && Array.isArray(gatesEval.gates) && gatesEval.gates.length > 0) {
     lines.push(`## Gate Results`);
     lines.push(`| Metric | Operator | Threshold | Actual | Status |`);
     lines.push(`|---|---|---|---|---|`);

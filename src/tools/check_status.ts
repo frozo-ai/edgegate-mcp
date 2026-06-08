@@ -47,7 +47,12 @@ function format(run: RunDetail): string {
     lines.push(``);
   }
 
-  if (run.gates_eval) {
+  // Runs that errored before gate evaluation have gates_eval = null OR
+  // gates_eval = {} without a `gates` array (e.g. CELL_EXECUTION_ERROR on
+  // the first cell, orphaned matrix runs). Guard against `gates` being
+  // missing — the prior code did `for (const gate of run.gates_eval.gates)`
+  // and crashed with "run.gates_eval.gates is not iterable".
+  if (run.gates_eval && Array.isArray(run.gates_eval.gates) && run.gates_eval.gates.length > 0) {
     lines.push(`### Gate Results`);
     for (const gate of run.gates_eval.gates) {
       const sym = gate.passed ? "✓" : "✗";

@@ -87,6 +87,10 @@ import {
   listMembersInputSchema,
 } from "./tools/list_members.js";
 import {
+  listDevicesHandler,
+  listDevicesInputSchema,
+} from "./tools/list_devices.js";
+import {
   inviteMemberHandler,
   inviteMemberInputSchema,
 } from "./tools/invite_member.js";
@@ -329,6 +333,17 @@ const TOOLS = [
       "viewer role.",
     schema: listMembersInputSchema,
     handler: listMembersHandler,
+  },
+  {
+    name: "edgegate_list_devices",
+    description:
+      "List every Qualcomm AI Hub device EdgeGate can target (Snapdragon phones, " +
+      "QRD/CRD reference platforms, IoT Dragonwing, automotive, XR). Returns a " +
+      "markdown table grouped by category. Use the `id` column verbatim when " +
+      "building a `create_pipeline` device matrix. No workspace_id needed — the " +
+      "catalog is global.",
+    schema: listDevicesInputSchema,
+    handler: listDevicesHandler,
   },
   {
     name: "edgegate_invite_member",
