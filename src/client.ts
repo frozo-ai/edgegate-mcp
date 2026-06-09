@@ -7,6 +7,7 @@ import type {
   ByoArtifactRegisterRequest,
   ByoAuditPage,
   ByoGrant,
+  ByoSetupInfo,
   DeviceListResponse,
   HFImportJob,
   HuggingFaceConnectResponse,
@@ -333,6 +334,44 @@ export class EdgeGateClient {
       "POST",
       `/v1/workspaces/${workspaceId}/byo-storage/grants`,
       body
+    );
+  }
+  /**
+   * Phase-1 of the two-phase wizard: register the grant WITHOUT a role_arn.
+   * Backend persists with status='pending_role' and returns the External ID
+   * the customer needs to write into their trust policy. The orchestrator
+   * tool calls this, then asks the agent to run AWS CLI to create the role,
+   * then calls attachByoRole below.
+   */
+  async registerByoPendingGrant(
+    workspaceId: string,
+    body: { bucket: string; region: string; kms_key_id?: string }
+  ): Promise<ByoGrant> {
+    return this.request<ByoGrant>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/byo-storage/grants`,
+      body
+    );
+  }
+  /**
+   * Phase-2 of the two-phase wizard: hand a Role ARN to a pending_role grant.
+   * Backend runs the readiness probe and either flips status to 'active' or
+   * 'failed' with last_verify_error populated.
+   */
+  async attachByoRole(
+    workspaceId: string,
+    roleArn: string
+  ): Promise<ByoGrant> {
+    return this.request<ByoGrant>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/byo-storage/grants/attach-role`,
+      { role_arn: roleArn }
+    );
+  }
+  async getByoSetupInfo(workspaceId: string): Promise<ByoSetupInfo> {
+    return this.request<ByoSetupInfo>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/byo-storage/setup-info`
     );
   }
   async getByoGrant(workspaceId: string): Promise<ByoGrant> {

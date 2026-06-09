@@ -107,6 +107,14 @@ import {
   registerByoBucketInputSchema,
 } from "./tools/register_byo_bucket.js";
 import {
+  setupByoStorageHandler,
+  setupByoStorageInputSchema,
+} from "./tools/setup_byo_storage.js";
+import {
+  attachByoRoleHandler,
+  attachByoRoleInputSchema,
+} from "./tools/attach_byo_role.js";
+import {
   checkByoBucketHandler,
   checkByoBucketInputSchema,
 } from "./tools/check_byo_bucket.js";
@@ -373,14 +381,41 @@ const TOOLS = [
     handler: removeMemberHandler,
   },
   {
+    name: "edgegate_setup_byo_storage",
+    description:
+      "Enterprise only. Zero-friction BYO storage setup — creates a pending grant " +
+      "with EdgeGate (returns the External ID) and returns the exact AWS CLI " +
+      "commands the agent should run to create the IAM role in the customer's " +
+      "AWS account. Pair with edgegate_attach_byo_role to finalize. Prefer this " +
+      "over edgegate_register_byo_bucket for new setups — the agent doesn't have " +
+      "to figure out the trust policy or guess at role names. Requires owner role. " +
+      "402 from non-Enterprise workspaces; if a non-pending grant exists, instructs " +
+      "the agent to disconnect first.",
+    schema: setupByoStorageInputSchema,
+    handler: setupByoStorageHandler,
+  },
+  {
+    name: "edgegate_attach_byo_role",
+    description:
+      "Phase 2 of edgegate_setup_byo_storage. Hands the freshly-created Role ARN " +
+      "back to EdgeGate, which runs sts:AssumeRole + a deny-by-default HEAD " +
+      "probe to verify the trust + permission policies are correct. Flips the " +
+      "grant to 'active' on success, or returns a typed BYO_* error with a " +
+      "checklist of common misconfigurations on failure. Re-callable with the " +
+      "same role_arn after fixing IAM.",
+    schema: attachByoRoleInputSchema,
+    handler: attachByoRoleHandler,
+  },
+  {
     name: "edgegate_register_byo_bucket",
     description:
-      "Enterprise only. Register the workspace's customer-owned S3 bucket + IAM role " +
-      "as a BYO storage grant. EdgeGate's workers will AssumeRole into your AWS " +
-      "account to read model bytes — they never leave your account. Returns the " +
-      "External ID you must add to your role's trust policy. Requires owner role. " +
-      "402 from non-Enterprise workspaces; 409 if a grant already exists (does NOT " +
-      "auto-rotate — disconnect + re-register or rotate via dashboard).",
+      "Enterprise only. **Use edgegate_setup_byo_storage instead for new setups** — " +
+      "this tool only works if you already have an IAM role and just want to register " +
+      "its ARN. Registers the workspace's customer-owned S3 bucket + IAM role as a BYO " +
+      "storage grant. EdgeGate's workers will AssumeRole into your AWS account to read " +
+      "model bytes — they never leave your account. Returns the External ID you must " +
+      "add to your role's trust policy. Requires owner role. 402 from non-Enterprise " +
+      "workspaces; 409 if a grant already exists.",
     schema: registerByoBucketInputSchema,
     handler: registerByoBucketHandler,
   },

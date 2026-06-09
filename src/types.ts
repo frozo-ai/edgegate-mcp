@@ -362,16 +362,39 @@ export interface PromptPackCreateBody {
 export interface ByoGrant {
   id: UUID;
   workspace_id: UUID;
-  role_arn: string;
+  // Nullable while status='pending_role' — the customer hasn't attached an
+  // IAM role yet. Two-phase wizard creates a grant via POST /grants without
+  // role_arn first; the agent then runs IAM CreateRole and attaches the
+  // resulting ARN via POST /grants/attach-role.
+  role_arn: string | null;
   external_id: UUID;
   bucket: string;
   region: string;
   kms_key_id: string | null;
-  status: "active" | "revoked" | "failed";
+  status: "pending_role" | "active" | "revoked" | "failed";
   last_verified_at: string | null;
   last_verify_error: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * GET /v1/workspaces/{ws}/byo-storage/setup-info response. Surfaces
+ * EdgeGate's IAM principal so the orchestrator tool can render the trust
+ * policy with the right ARN before asking the agent to create the role.
+ */
+export interface ByoSetupInfo {
+  edgegate_aws_account_id: string;
+  edgegate_principal_arn: string;
+  docs_url: string;
+  trust_policy_template: string;
+  permission_policy_template: string;
+  permission_policy_with_kms_template: string;
+  cloudformation_template_url: string;
+  cloudformation_template_yaml: string;
+  terraform_template: string;
+  terraform_template_with_kms: string;
+  setup_info_warning: string | null;
 }
 
 /**
