@@ -128,7 +128,12 @@ function successText(grant: ByoGrant): ToolResult {
         text: [
           `Registered BYO storage grant for this workspace.`,
           ``,
-          `- role: \`${roleArnTail(grant.role_arn)}\``,
+          // role_arn can be null on pending_role grants, but the
+          // register_byo_bucket tool requires role_arn in its input — so
+          // a successful response from this tool's endpoint always has a
+          // populated role_arn. Fall through to a safe default so the
+          // type system is satisfied for the null-tolerant ByoGrant shape.
+          `- role: \`${roleArnTail(grant.role_arn ?? "(not attached)")}\``,
           `- bucket: \`${grant.bucket}\` (${grant.region})`,
           grant.kms_key_id
             ? `- kms key: \`${grant.kms_key_id}\``
