@@ -40,6 +40,37 @@ export const createPipelineInputSchema = z.object({
           // `throughput_tps` we used to ship here).
           "ttft_ms",
           "tps",
+          // Phase 1 (2026-06-11) — schema-verified AI Hub fields previously
+          // dropped. Compile-time + cold/warm load metrics. See
+          // docs/superpowers/plans/2026-06-11-gate-expansion.md.
+          "compile_time_ms",
+          "compile_peak_memory_mb",
+          "first_load_time_ms",
+          "first_load_peak_memory_mb",
+          "warm_load_time_ms",
+          // Phase 2a — layer-count composition. Gate on
+          // `cpu_layer_count == 0` to catch silent NPU-fallback that
+          // aggregate `npu_compute_percent` can miss.
+          "npu_layer_count",
+          "gpu_layer_count",
+          "cpu_layer_count",
+          "total_layer_count",
+          "npu_layer_percent",
+          "gpu_layer_percent",
+          "cpu_layer_percent",
+          // Phase 2b — CV (coefficient of variation) variants. Gate on
+          // `inference_time_cv < 0.05` for stricter determinism than our
+          // default 10% flake threshold.
+          "inference_time_cv",
+          "peak_memory_cv",
+          "npu_compute_percent_cv",
+          "gpu_compute_percent_cv",
+          "cpu_compute_percent_cv",
+          "compile_time_cv",
+          "compile_peak_memory_cv",
+          "first_load_time_cv",
+          "first_load_peak_memory_cv",
+          "warm_load_time_cv",
         ]),
         operator: z.enum(["<=", "<", ">=", ">", "=="]),
         threshold: z.number().positive(),
