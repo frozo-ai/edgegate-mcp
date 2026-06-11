@@ -34,6 +34,7 @@ import { createPipelineInputSchema } from "../src/tools/create_pipeline.js";
 // still current.
 const BACKEND_CONTRACT_FIXTURE = {
   valid_gate_metrics: [
+    // Phase 0 — original 7
     "cpu_compute_percent",
     "gpu_compute_percent",
     "inference_time_ms",
@@ -41,6 +42,31 @@ const BACKEND_CONTRACT_FIXTURE = {
     "peak_memory_mb",
     "tps",
     "ttft_ms",
+    // Phase 1 (2026-06-11) — schema-verified AI Hub fields
+    "compile_time_ms",
+    "compile_peak_memory_mb",
+    "first_load_time_ms",
+    "first_load_peak_memory_mb",
+    "warm_load_time_ms",
+    // Phase 2a — layer-count composition
+    "cpu_layer_count",
+    "cpu_layer_percent",
+    "gpu_layer_count",
+    "gpu_layer_percent",
+    "npu_layer_count",
+    "npu_layer_percent",
+    "total_layer_count",
+    // Phase 2b — CV variants (computed by backend aggregator)
+    "compile_peak_memory_cv",
+    "compile_time_cv",
+    "cpu_compute_percent_cv",
+    "first_load_peak_memory_cv",
+    "first_load_time_cv",
+    "gpu_compute_percent_cv",
+    "inference_time_cv",
+    "npu_compute_percent_cv",
+    "peak_memory_cv",
+    "warm_load_time_cv",
   ],
   valid_gate_operators: ["eq", "gt", "gte", "lt", "lte"],
   run_statuses_terminal: ["error", "failed", "passed"],
