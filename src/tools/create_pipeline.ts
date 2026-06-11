@@ -58,19 +58,20 @@ export const createPipelineInputSchema = z.object({
           "npu_layer_percent",
           "gpu_layer_percent",
           "cpu_layer_percent",
-          // Phase 2b — CV (coefficient of variation) variants. Gate on
-          // `inference_time_cv < 0.05` for stricter determinism than our
-          // default 10% flake threshold.
-          "inference_time_cv",
-          "peak_memory_cv",
+          // Phase 2b — CV (coefficient of variation) variants. Computed by
+          // backend aggregator as `{source_metric}_cv`, preserving the unit
+          // suffix. Gate on `inference_time_ms_cv < 0.05` for stricter
+          // determinism than our default 10% flake threshold.
+          "inference_time_ms_cv",
+          "peak_memory_mb_cv",
           "npu_compute_percent_cv",
           "gpu_compute_percent_cv",
           "cpu_compute_percent_cv",
-          "compile_time_cv",
-          "compile_peak_memory_cv",
-          "first_load_time_cv",
-          "first_load_peak_memory_cv",
-          "warm_load_time_cv",
+          "compile_time_ms_cv",
+          "compile_peak_memory_mb_cv",
+          "first_load_time_ms_cv",
+          "first_load_peak_memory_mb_cv",
+          "warm_load_time_ms_cv",
         ]),
         operator: z.enum(["<=", "<", ">=", ">", "=="]),
         threshold: z.number().positive(),
