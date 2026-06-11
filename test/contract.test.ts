@@ -85,11 +85,29 @@ const BACKEND_CONTRACT_FIXTURE = {
 // Extract the metric enum from the MCP's create_pipeline schema. Walks
 // the Zod tree because the schema is built compositionally and we don't
 // want to hand-maintain a second copy.
+//
+// Post-Phase-2a: `gates.element` is now a discriminated union of metric
+// and composition gates. We grab the metric variant by looking for the
+// object that exposes a `metric` field with z.enum options.
 function getMcpMetricEnum(): string[] {
   const shape = (createPipelineInputSchema as unknown as z.AnyZodObject).shape;
-  const gatesSchema = shape.gates as z.ZodArray<z.ZodObject<{ metric: z.ZodEnum<[string, ...string[]]> }>>;
-  const gateMetric = gatesSchema.element.shape.metric;
-  return [...gateMetric.options].sort();
+  const gatesArr = shape.gates as z.ZodArray<z.ZodTypeAny>;
+  const element = gatesArr.element as z.ZodTypeAny;
+  // Union (Phase 2a) — search the options for the metric-gate variant.
+  if (element instanceof z.ZodUnion) {
+    for (const opt of element.options) {
+      const objShape = (opt as z.AnyZodObject).shape;
+      const metricField = objShape?.metric;
+      if (metricField instanceof z.ZodEnum) {
+        return [...metricField.options].sort();
+      }
+    }
+    throw new Error("Could not locate metric-gate variant in MCP gates union");
+  }
+  // Legacy pre-2a shape — single ZodObject with `metric` enum.
+  const obj = element as z.AnyZodObject;
+  const metricField = obj.shape.metric as z.ZodEnum<[string, ...string[]]>;
+  return [...metricField.options].sort();
 }
 
 describe("MCP ↔ backend contract", () => {

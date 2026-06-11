@@ -24,7 +24,13 @@ export const createPipelineInputSchema = z.object({
   devices: z.array(z.string().min(1)).min(1).max(5),
   gates: z
     .array(
-      z.object({
+      z.union([
+        // ----- Metric gates (scalar threshold against a normalised metric).
+        // Existing shape preserved exactly so older callers don't have to
+        // touch their payloads. `type` is optional — when omitted, the
+        // backend interprets the gate as a metric gate.
+        z.object({
+          type: z.literal("metric").optional(),
         metric: z.enum([
           // Stable — populated for every model AI Hub profiles successfully.
           "inference_time_ms",
@@ -76,7 +82,31 @@ export const createPipelineInputSchema = z.object({
         operator: z.enum(["<=", "<", ">=", ">", "=="]),
         threshold: z.number().positive(),
         description: z.string().optional(),
-      })
+        }),
+        // ----- Composition gates (Phase 2a). Count per-layer
+        // (op_type, compute_unit) matches in AI Hub's execution_detail
+        // and gate the count. The killer use case: catch silent NPU→CPU
+        // fallback that aggregate `npu_compute_percent` can mask when
+        // one heavy op dominates time-weighted percentages.
+        //
+        // Example (no Conv layer allowed on CPU):
+        //   { type: "composition", op_type: "Conv", compute_unit: "CPU",
+        //     operator: "==", threshold: 0 }
+        //
+        // Example (no layer of ANY type on CPU — i.e. "no fallback"):
+        //   { type: "composition", op_type: "*", compute_unit: "CPU",
+        //     operator: "==", threshold: 0 }
+        z.object({
+          type: z.literal("composition"),
+          /** ONNX op type to match (case-insensitive). Use "*" to match any layer type. */
+          op_type: z.string().min(1).default("*"),
+          compute_unit: z.enum(["NPU", "GPU", "CPU"]),
+          operator: z.enum(["<=", "<", ">=", ">", "=="]),
+          /** Allowed matching-layer count. `0` is the headline "no fallback" rule. */
+          threshold: z.number().int().min(0),
+          description: z.string().optional(),
+        }),
+      ])
     )
     .min(1),
   /**
@@ -157,12 +187,27 @@ export async function createPipelineHandler(
     promptpack_id: input.promptpack_id,
     version: input.promptpack_version,
   };
-  const gates = input.gates.map((g) => ({
-    metric: g.metric,
-    operator: OPERATOR_MAP[g.operator] ?? g.operator,
-    threshold: g.threshold,
-    ...(g.description !== undefined ? { description: g.description } : {}),
-  }));
+  const gates = input.gates.map((g) => {
+    const baseOperator = OPERATOR_MAP[g.operator] ?? g.operator;
+    if (g.type === "composition") {
+      return {
+        type: "composition",
+        op_type: g.op_type ?? "*",
+        compute_unit: g.compute_unit,
+        operator: baseOperator,
+        threshold: g.threshold,
+        ...(g.description !== undefined ? { description: g.description } : {}),
+      };
+    }
+    return {
+      // type defaults to "metric" on the backend when absent — keep payload
+      // minimal for the common case.
+      metric: g.metric,
+      operator: baseOperator,
+      threshold: g.threshold,
+      ...(g.description !== undefined ? { description: g.description } : {}),
+    };
+  });
   const model_matrix = input.models?.map((m) => ({ artifact_id: m.artifact_id, label: m.name }));
   const run_policy = input.repeats !== undefined ? { measurement_repeats: input.repeats } : undefined;
 
