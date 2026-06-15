@@ -234,6 +234,23 @@ export type HFImportStatus =
   | "done"
   | "failed";
 
+/**
+ * One entry in a multi-part HF import. F-T6.2 (commit 3636c20) added
+ * multi-part `.bin` auto-discovery: a Volko76-style repo with 3 parts
+ * (prompt / token / kv_cache) now unpacks into 3 ArtifactRefs, in addition
+ * to the legacy single `artifact_id` field (which still points at part 1
+ * for backward compat with older MCP clients).
+ */
+export interface ArtifactRef {
+  id: UUID;
+  filename: string;
+  size_bytes: number;
+  /** "prompt" | "token" | "kv_cache" for M=3 multi-part imports; "part_N" otherwise. */
+  role: string;
+  /** 1-based. */
+  part_index: number;
+}
+
 export interface HFImportJob {
   import_job_id: string;
   status: HFImportStatus;
@@ -243,6 +260,41 @@ export interface HFImportJob {
   size_bytes: number | null;
   filename: string | null;
   error_detail: string | null;
+  /**
+   * Plan B / F-T6.2 — when the HF repo contains multiple .bin parts, this
+   * array surfaces every part (size > 1 for multi-part imports). Omitted
+   * or single-element for legacy single-file imports.
+   */
+  artifacts?: ArtifactRef[];
+}
+
+// ─── LLM compile (Plan B) types ──────────────────────────────────────────
+
+export type LLMCompileStatus = "queued" | "running" | "completed" | "failed";
+
+export interface LLMCompileProgress {
+  compile_jobs_done: number;
+  compile_jobs_total: number;
+}
+
+/**
+ * Returned by POST /v1/workspaces/{ws}/llm-compile and GET
+ * /v1/workspaces/{ws}/llm-compile/{compile_job_id}. POST returns the
+ * initial queued state; GET reflects current state. On success,
+ * `composite_artifact_id` is the QNN_DLC linked composite ready to be
+ * referenced from a pipeline. On failure, `error_detail` is set.
+ */
+export interface LLMCompileJob {
+  compile_job_id: UUID;
+  status: LLMCompileStatus;
+  composite_artifact_id: UUID | null;
+  error_detail: string | null;
+  progress: LLMCompileProgress;
+  /** Echoed for caller convenience. */
+  device_id?: string;
+  target_runtime?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // ─── Compare-runs types ────────────────────────────────────────────────────

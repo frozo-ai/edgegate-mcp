@@ -237,6 +237,102 @@ describe("timeout", () => {
   });
 });
 
+// ─── 6a. Multi-part response (Plan B / F-T6.2) ────────────────────────────
+
+describe("multi-part artifacts response", () => {
+  it("surfaces the artifacts[] array with role + filename per part", async () => {
+    vi.useFakeTimers();
+
+    const partA = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+    const partB = "dddddddd-dddd-dddd-dddd-dddddddddddd";
+    const partC = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+
+    server.use(
+      http.post(
+        `${apiUrl}/v1/workspaces/${wsId}/artifacts/import-huggingface`,
+        () => HttpResponse.json(basePostResponse, { status: 202 })
+      ),
+      http.get(
+        `${apiUrl}/v1/workspaces/${wsId}/artifacts/import-huggingface/${jobId}`,
+        () =>
+          HttpResponse.json({
+            ...basePostResponse,
+            status: "done",
+            // Legacy single-id field still points at part 1 for backward compat.
+            artifact_id: partA,
+            size_bytes: 31_457_280,
+            filename: "prompt.bin",
+            artifacts: [
+              { id: partA, filename: "prompt.bin", size_bytes: 31_457_280, role: "prompt", part_index: 1 },
+              { id: partB, filename: "token.bin", size_bytes: 31_457_280, role: "token", part_index: 2 },
+              { id: partC, filename: "kv_cache.bin", size_bytes: 5_242_880, role: "kv_cache", part_index: 3 },
+            ],
+          })
+      )
+    );
+
+    const client = new EdgeGateClient({ apiUrl, apiKey });
+    const resultPromise = importHuggingfaceModelHandler(client, {
+      workspace_id: wsId,
+      hf_repo_id: "Volko76/Llama-1B-bin",
+      revision: "main",
+      poll_for_completion: true,
+      max_poll_seconds: 300,
+    });
+
+    await vi.runAllTimersAsync();
+    const result = await resultPromise;
+    expect(result.isError).toBeUndefined();
+
+    const text = result.content[0].text;
+    // Multi-part copy + all 3 ids + all 3 roles must appear
+    expect(text).toMatch(/3 component artifacts/);
+    expect(text).toContain(partA);
+    expect(text).toContain(partB);
+    expect(text).toContain(partC);
+    expect(text).toContain("prompt");
+    expect(text).toContain("token");
+    expect(text).toContain("kv_cache");
+    // Hint should point at llm_compile_source path
+    expect(text).toMatch(/llm_compile_source/);
+  });
+
+  it("falls back to single-artifact output when artifacts[] is omitted (back compat)", async () => {
+    vi.useFakeTimers();
+    server.use(
+      http.post(
+        `${apiUrl}/v1/workspaces/${wsId}/artifacts/import-huggingface`,
+        () => HttpResponse.json(basePostResponse, { status: 202 })
+      ),
+      http.get(
+        `${apiUrl}/v1/workspaces/${wsId}/artifacts/import-huggingface/${jobId}`,
+        () =>
+          HttpResponse.json({
+            ...basePostResponse,
+            status: "done",
+            artifact_id: artifactId,
+            size_bytes: 5_242_880,
+            filename: "model.onnx",
+            // No `artifacts` field — old backend response shape.
+          })
+      )
+    );
+
+    const client = new EdgeGateClient({ apiUrl, apiKey });
+    const resultPromise = importHuggingfaceModelHandler(client, {
+      workspace_id: wsId,
+      hf_repo_id: "microsoft/resnet-50",
+      poll_for_completion: true,
+      max_poll_seconds: 300,
+    });
+    await vi.runAllTimersAsync();
+    const result = await resultPromise;
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].text).not.toMatch(/component artifacts/);
+    expect(result.content[0].text).toContain(artifactId);
+  });
+});
+
 // ─── 6. 402 from backend ──────────────────────────────────────────────────
 
 describe("402 from backend", () => {

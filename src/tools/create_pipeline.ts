@@ -46,6 +46,13 @@ export const createPipelineInputSchema = z.object({
           // `throughput_tps` we used to ship here).
           "ttft_ms",
           "tps",
+          // Plan B additions (2026-06-15) — surfaced from `llm_metrics`
+          // block in the worker normalizer. response_rate_tps is the
+          // sustained token-rate (1000/token-inference). ttft_min_ms /
+          // ttft_max_ms are the per-prompt-component spread.
+          "response_rate_tps",
+          "ttft_min_ms",
+          "ttft_max_ms",
           // Phase 1 (2026-06-11) — schema-verified AI Hub fields previously
           // dropped. Compile-time + cold/warm load metrics. See
           // docs/superpowers/plans/2026-06-11-gate-expansion.md.
@@ -112,9 +119,49 @@ export const createPipelineInputSchema = z.object({
   /**
    * Optional multi-model matrix. When omitted the pipeline runs in legacy
    * single-model mode (model_artifact_id is supplied per-run instead).
+   *
+   * Each entry MUST set EITHER `artifact_id` (pre-uploaded model, existing
+   * path) OR `llm_compile_source` (Plan B — EdgeGate compiles + links the
+   * LLM via Qualcomm AI Hub on first run, then caches the composite). The
+   * backend enforces mutual exclusion; we surface a client-side error
+   * before the network call when both are set.
    */
   models: z
-    .array(z.object({ name: z.string().min(1), artifact_id: z.string().min(1) }))
+    .array(
+      z
+        .object({
+          name: z.string().min(1),
+          artifact_id: z.string().min(1).optional(),
+          /**
+           * If set instead of artifact_id: EdgeGate will compile the LLM
+           * via Qualcomm AI Hub on first pipeline run, then cache the
+           * resulting composite artifact. The pipeline is created in
+           * compile_pending state and the response includes a
+           * compile_job_id alongside the pipeline_id.
+           */
+          llm_compile_source: z
+            .object({
+              source_artifact_ids: z.array(z.string().uuid()).min(1).max(8),
+              sequence_lengths: z
+                .array(z.number().int().positive())
+                .default([128, 1]),
+              context_lengths: z
+                .array(z.number().int().positive())
+                .default([4096]),
+              roles: z.array(z.string().min(1)).optional(),
+              target_runtime: z.string().min(1).default("genie"),
+            })
+            .optional(),
+        })
+        .refine(
+          (m) => (m.artifact_id !== undefined) !== (m.llm_compile_source !== undefined),
+          {
+            message:
+              "Each model must set EXACTLY ONE of `artifact_id` (pre-uploaded model) " +
+              "OR `llm_compile_source` (auto-compile via AI Hub). Both set OR neither set is invalid.",
+          }
+        )
+    )
     .min(1)
     .max(10)
     .optional(),
@@ -191,7 +238,7 @@ export async function createPipelineHandler(
     const baseOperator = OPERATOR_MAP[g.operator] ?? g.operator;
     if (g.type === "composition") {
       return {
-        type: "composition",
+        type: "composition" as const,
         op_type: g.op_type ?? "*",
         compute_unit: g.compute_unit,
         operator: baseOperator,
@@ -208,7 +255,15 @@ export async function createPipelineHandler(
       ...(g.description !== undefined ? { description: g.description } : {}),
     };
   });
-  const model_matrix = input.models?.map((m) => ({ artifact_id: m.artifact_id, label: m.name }));
+  const model_matrix = input.models?.map((m) => {
+    if (m.llm_compile_source !== undefined) {
+      return {
+        label: m.name,
+        llm_compile_source: m.llm_compile_source,
+      };
+    }
+    return { artifact_id: m.artifact_id as string, label: m.name };
+  });
   const run_policy = input.repeats !== undefined ? { measurement_repeats: input.repeats } : undefined;
 
   try {

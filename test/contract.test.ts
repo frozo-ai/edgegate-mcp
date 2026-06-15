@@ -68,6 +68,12 @@ const BACKEND_CONTRACT_FIXTURE = {
     "npu_compute_percent_cv",
     "peak_memory_mb_cv",
     "warm_load_time_ms_cv",
+    // Plan B (2026-06-15) — LLM-only metrics surfaced from `llm_metrics`
+    // block (extracted by worker normalizer from per-component AI Hub
+    // profile jobs). Resolves to "Metric not available" on non-LLM models.
+    "response_rate_tps",
+    "ttft_max_ms",
+    "ttft_min_ms",
   ],
   valid_gate_operators: ["eq", "gt", "gte", "lt", "lte"],
   run_statuses_terminal: ["error", "failed", "passed"],

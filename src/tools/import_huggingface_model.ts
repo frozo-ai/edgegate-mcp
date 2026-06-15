@@ -116,22 +116,56 @@ export async function importHuggingfaceModelHandler(
         ? `${(latest.size_bytes / 1_048_576).toFixed(1)} MB`
         : "unknown size";
 
+    // Plan B / F-T6.2 — multi-part .bin imports surface every component.
+    // The legacy `artifact_id` still points at part 1 for backward compat;
+    // `artifacts` (when length > 1) is the full set.
+    const isMultiPart = Array.isArray(latest.artifacts) && latest.artifacts.length > 1;
+    const lines: string[] = [
+      `Import complete: **${input.hf_repo_id}**`,
+      ``,
+    ];
+
+    if (isMultiPart) {
+      const parts = latest.artifacts as NonNullable<typeof latest.artifacts>;
+      lines.push(
+        `Imported ${parts.length} component artifacts (multi-part LLM):`,
+        ``
+      );
+      for (const part of parts) {
+        const partSize =
+          part.size_bytes > 0
+            ? `${(part.size_bytes / 1_048_576).toFixed(1)} MB`
+            : "unknown size";
+        lines.push(
+          `- [${part.role}] ${part.filename} (${partSize}) — artifact_id: ${part.id}`
+        );
+      }
+      lines.push(
+        ``,
+        `Wire these into a pipeline via Plan B's llm_compile_source on a model entry:`,
+        `  models: [{`,
+        `    name: "${input.hf_repo_id}",`,
+        `    llm_compile_source: {`,
+        `      source_artifact_ids: [${parts.map((p) => `"${p.id}"`).join(", ")}],`,
+        `      roles: [${parts.map((p) => `"${p.role}"`).join(", ")}],`,
+        `    }`,
+        `  }]`,
+        ``,
+        `Or compile them up-front with \`edgegate_llm_compile\` and then reference the resulting composite_artifact_id.`
+      );
+    } else {
+      lines.push(
+        `- artifact_id: ${latest.artifact_id}`,
+        `- filename: ${latest.filename ?? "(unknown)"}`,
+        `- size: ${sizeLabel}`,
+        ``,
+        `Use this artifact_id in \`edgegate_create_pipeline\` to gate this model:`,
+        `  models: [{ name: "${input.hf_repo_id}", artifact_id: "${latest.artifact_id}" }]`
+      );
+    }
+
     return {
-      content: [
-        {
-          type: "text",
-          text: [
-            `Import complete: **${input.hf_repo_id}**`,
-            ``,
-            `- artifact_id: ${latest.artifact_id}`,
-            `- filename: ${latest.filename ?? "(unknown)"}`,
-            `- size: ${sizeLabel}`,
-            ``,
-            `Use this artifact_id in \`edgegate_create_pipeline\` to gate this model:`,
-            `  models: [{ name: "${input.hf_repo_id}", artifact_id: "${latest.artifact_id}" }]`,
-          ].join("\n"),
-        },
-      ],
+      content: [{ type: "text", text: lines.join("\n") }],
     };
   } catch (err) {
     if (err instanceof EdgeGateError) {

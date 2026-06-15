@@ -205,6 +205,117 @@ describe("create_pipeline tool", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts the 3 Plan B LLM metrics added 2026-06-15", async () => {
+    // Regression: response_rate_tps + ttft_min_ms + ttft_max_ms were
+    // added to backend VALID_METRICS in commit 7dd0691 but missing from
+    // the MCP enum until v0.11.0.
+    let receivedBody: unknown = null;
+    server.use(
+      http.post(`${apiUrl}/v1/workspaces/${wsId}/pipelines`, async ({ request }) => {
+        receivedBody = await request.json();
+        return HttpResponse.json(mockPipelineResponse, { status: 201 });
+      })
+    );
+
+    const client = new EdgeGateClient({ apiUrl, apiKey });
+    const result = await createPipelineHandler(client, {
+      workspace_id: wsId,
+      name: "LLM Plan-B metrics",
+      promptpack_id: "bench-v1",
+      devices: ["d1"],
+      gates: [
+        { metric: "response_rate_tps", operator: ">=", threshold: 25 },
+        { metric: "ttft_min_ms", operator: "<=", threshold: 800 },
+        { metric: "ttft_max_ms", operator: "<=", threshold: 2000 },
+      ],
+    });
+
+    expect(result.isError).toBeUndefined();
+    expect((receivedBody as Record<string, unknown>).gates).toHaveLength(3);
+  });
+
+  it("accepts a model entry with llm_compile_source (Plan B)", async () => {
+    let receivedBody: unknown = null;
+    server.use(
+      http.post(`${apiUrl}/v1/workspaces/${wsId}/pipelines`, async ({ request }) => {
+        receivedBody = await request.json();
+        return HttpResponse.json({ ...mockPipelineResponse, model_count: 1 }, { status: 201 });
+      })
+    );
+
+    const client = new EdgeGateClient({ apiUrl, apiKey });
+    const srcA = "44444444-4444-4444-4444-444444444444";
+    const srcB = "55555555-5555-5555-5555-555555555555";
+    const srcC = "66666666-6666-6666-6666-666666666666";
+
+    const result = await createPipelineHandler(client, {
+      workspace_id: wsId,
+      name: "Llama-1B auto-compile",
+      promptpack_id: "bench-v1",
+      devices: ["d1"],
+      gates: [{ metric: "ttft_ms", operator: "<=", threshold: 1500 }],
+      models: [
+        {
+          name: "Llama-1B",
+          llm_compile_source: {
+            source_artifact_ids: [srcA, srcB, srcC],
+            roles: ["prompt", "token", "kv_cache"],
+            sequence_lengths: [128, 1],
+            context_lengths: [4096],
+            target_runtime: "genie",
+          },
+        },
+      ],
+    });
+
+    expect(result.isError).toBeUndefined();
+    // Confirm the body has llm_compile_source and no artifact_id on that entry
+    const body = receivedBody as { model_matrix: Array<Record<string, unknown>> };
+    expect(body.model_matrix).toHaveLength(1);
+    expect(body.model_matrix[0]).toHaveProperty("llm_compile_source");
+    expect(body.model_matrix[0]).not.toHaveProperty("artifact_id");
+    expect(body.model_matrix[0].label).toBe("Llama-1B");
+    expect((body.model_matrix[0].llm_compile_source as Record<string, unknown>).source_artifact_ids).toEqual([
+      srcA,
+      srcB,
+      srcC,
+    ]);
+  });
+
+  it("rejects a model entry with BOTH artifact_id and llm_compile_source (mutual exclusion)", () => {
+    const srcA = "44444444-4444-4444-4444-444444444444";
+    const parsed = createPipelineInputSchema.safeParse({
+      workspace_id: wsId,
+      name: "Conflicted model",
+      promptpack_id: "bench-v1",
+      devices: ["d1"],
+      gates: [{ metric: "inference_time_ms", operator: "<=", threshold: 10 }],
+      models: [
+        {
+          name: "Conflict",
+          artifact_id: "art-1",
+          llm_compile_source: { source_artifact_ids: [srcA] },
+        },
+      ],
+    });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.message).toMatch(/exactly one|artifact_id|llm_compile_source/i);
+    }
+  });
+
+  it("rejects a model entry with NEITHER artifact_id nor llm_compile_source", () => {
+    const parsed = createPipelineInputSchema.safeParse({
+      workspace_id: wsId,
+      name: "Empty model",
+      promptpack_id: "bench-v1",
+      devices: ["d1"],
+      gates: [{ metric: "inference_time_ms", operator: "<=", threshold: 10 }],
+      models: [{ name: "Empty" }],
+    });
+    expect(parsed.success).toBe(false);
+  });
+
   it("rejects a 25+ cell matrix client-side (multi-model)", async () => {
     const client = new EdgeGateClient({ apiUrl, apiKey });
     const result = await createPipelineHandler(client, {

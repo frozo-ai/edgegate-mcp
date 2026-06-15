@@ -130,6 +130,14 @@ import {
   getByoAuditHandler,
   getByoAuditInputSchema,
 } from "./tools/get_byo_audit.js";
+import {
+  llmCompileHandler,
+  llmCompileInputSchema,
+} from "./tools/llm_compile.js";
+import {
+  checkLLMCompileStatusHandler,
+  checkLLMCompileStatusInputSchema,
+} from "./tools/check_llm_compile_status.js";
 
 const TOOLS = [
   {
@@ -144,7 +152,12 @@ const TOOLS = [
     name: "edgegate_create_pipeline",
     description:
       "Create a new EdgeGate regression pipeline. Define which model(s), which device(s), " +
-      "and which gates (e.g. inference_time_ms ≤ 10) the pipeline will enforce.",
+      "and which gates (e.g. inference_time_ms ≤ 10) the pipeline will enforce. " +
+      "For LLMs: set llm_compile_source on a model instead of artifact_id. EdgeGate will " +
+      "compile + link via AI Hub on first run; subsequent runs reuse the cached composite. " +
+      "ttft_ms + tps gates work; both are derived from per-component profile (prompt-role " +
+      "inference_time → TTFT; 1000/token-role inference_time → TPS). Each LLM gate run = " +
+      "3 AI Hub profile jobs (one per component) ≈ 3× CV cost.",
     schema: createPipelineInputSchema,
     handler: createPipelineHandler,
   },
@@ -449,6 +462,27 @@ const TOOLS = [
       "artifacts first). Destructive. Requires owner role.",
     schema: disconnectByoBucketInputSchema,
     handler: disconnectByoBucketHandler,
+  },
+  {
+    name: "edgegate_llm_compile",
+    description:
+      "Submit a multi-component LLM compile + link job via Qualcomm AI Hub. Returns a " +
+      "compile_job_id; poll with edgegate_check_llm_compile_status. Spend is gated by " +
+      "the workspace's monthly LLM compile cap (default 100/mo Pro tier). Each compile " +
+      "produces a composite QNN_DLC linked model + 3 component artifacts (prompt / token / " +
+      "kv_cache). Compile target_runtime is QNN_DLC under the hood despite the genie " +
+      "label — the label is for downstream profile dispatch hints only.",
+    schema: llmCompileInputSchema,
+    handler: llmCompileHandler,
+  },
+  {
+    name: "edgegate_check_llm_compile_status",
+    description:
+      "Poll an LLM compile job. Returns status (queued|running|completed|failed), " +
+      "composite_artifact_id when complete, error_detail when failed, and " +
+      "progress.compile_jobs_done / total.",
+    schema: checkLLMCompileStatusInputSchema,
+    handler: checkLLMCompileStatusHandler,
   },
   {
     name: "edgegate_get_byo_audit",

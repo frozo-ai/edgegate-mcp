@@ -13,6 +13,7 @@ import type {
   HuggingFaceConnectResponse,
   HuggingFaceIntegrationStatus,
   InputSpec,
+  LLMCompileJob,
   Member,
   Pipeline,
   PromptPackCreateBody,
@@ -86,20 +87,72 @@ export class EdgeGateClient {
       name: string;
       device_matrix: Array<{ name: string; enabled: boolean }>;
       promptpack_ref: { promptpack_id: string; version: string };
-      gates: Array<{ metric: string; operator: string; threshold: number; description?: string }>;
+      // Either a metric gate ({metric, operator, threshold}) or a
+      // composition gate ({type:"composition", op_type, compute_unit,
+      // operator, threshold}). Backend discriminates on `type` (defaults
+      // to "metric" when absent).
+      gates: Array<
+        | { metric: string; operator: string; threshold: number; description?: string }
+        | {
+            type: "composition";
+            op_type: string;
+            compute_unit: "NPU" | "GPU" | "CPU";
+            operator: string;
+            threshold: number;
+            description?: string;
+          }
+      >;
       run_policy?: {
         warmup_runs?: number;
         measurement_repeats?: number;
         max_new_tokens?: number;
         timeout_minutes?: number;
       };
-      model_matrix?: Array<{ artifact_id: string; label?: string }>;
+      model_matrix?: Array<{
+        artifact_id?: string;
+        label?: string;
+        llm_compile_source?: {
+          source_artifact_ids: string[];
+          sequence_lengths?: number[];
+          context_lengths?: number[];
+          roles?: string[];
+          target_runtime?: string;
+        };
+      }>;
       /** Optional explicit AI Hub compile input shapes.  Omit to let EdgeGate
        *  auto-detect from the ONNX file (works for most models). */
       input_specs?: Record<string, InputSpec>;
     }
   ): Promise<Pipeline> {
     return this.request<Pipeline>("POST", `/v1/workspaces/${workspaceId}/pipelines`, body);
+  }
+
+  // LLM compile (Plan B) ───────────────────────────────────────────────
+  async submitLLMCompile(
+    workspaceId: string,
+    body: {
+      source_artifact_ids: string[];
+      device_id: string;
+      target_runtime?: string;
+      sequence_lengths?: number[];
+      context_lengths?: number[];
+      roles?: string[];
+    }
+  ): Promise<LLMCompileJob> {
+    return this.request<LLMCompileJob>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/llm-compile`,
+      body
+    );
+  }
+  async getLLMCompileJob(
+    workspaceId: string,
+    compileJobId: string
+  ): Promise<LLMCompileJob> {
+    return this.request<LLMCompileJob>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/llm-compile/${compileJobId}`
+    );
   }
   async listPipelines(workspaceId: string): Promise<Pipeline[]> {
     return this.request<Pipeline[]>("GET", `/v1/workspaces/${workspaceId}/pipelines`);
