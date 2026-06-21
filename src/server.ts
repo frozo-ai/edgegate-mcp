@@ -138,6 +138,30 @@ import {
   checkLLMCompileStatusHandler,
   checkLLMCompileStatusInputSchema,
 } from "./tools/check_llm_compile_status.js";
+import {
+  listEvalPacksHandler,
+  listEvalPacksInputSchema,
+} from "./tools/list_eval_packs.js";
+import {
+  createEvalSetHandler,
+  createEvalSetInputSchema,
+} from "./tools/create_eval_set.js";
+import {
+  listEvalSetsHandler,
+  listEvalSetsInputSchema,
+} from "./tools/list_eval_sets.js";
+import {
+  updateEvalSetHandler,
+  updateEvalSetInputSchema,
+} from "./tools/update_eval_set.js";
+import {
+  publishEvalSetHandler,
+  publishEvalSetInputSchema,
+} from "./tools/publish_eval_set.js";
+import {
+  newEvalSetVersionHandler,
+  newEvalSetVersionInputSchema,
+} from "./tools/new_eval_set_version.js";
 
 const TOOLS = [
   {
@@ -493,6 +517,67 @@ const TOOLS = [
       "join key for cross-referencing against your own CloudTrail. Requires admin role.",
     schema: getByoAuditInputSchema,
     handler: getByoAuditHandler,
+  },
+  {
+    name: "edgegate_list_eval_packs",
+    description:
+      "List the bundled behavioral eval-set starter packs a customer can clone from. " +
+      "Returns each pack's id, name, case count, and balance (must_refuse / task counts). " +
+      "Clone one into a new eval set via edgegate_create_eval_set(clone_from=<id>). No " +
+      "workspace_id needed — the pack library is global.",
+    schema: listEvalPacksInputSchema,
+    handler: listEvalPacksHandler,
+  },
+  {
+    name: "edgegate_create_eval_set",
+    description:
+      "Create a new behavioral eval set with its first draft version. Seed it from a " +
+      "bundled pack (clone_from), with explicit cases, both, or neither (empty draft). " +
+      "Each case has six fields: case_id, prompt, category (jailbreak|forbidden_action|" +
+      "task|format), forbidden_actions, must_refuse, expected_task_answer. Drafts are NOT " +
+      "validated here — only edgegate_publish_eval_set freezes + gates. Requires workspace " +
+      "write access.",
+    schema: createEvalSetInputSchema,
+    handler: createEvalSetHandler,
+  },
+  {
+    name: "edgegate_list_eval_sets",
+    description:
+      "List the workspace's behavioral eval sets — eval_set_id, name, latest version, and " +
+      "creation date. Use the eval_set_id with the update / publish / new-version tools.",
+    schema: listEvalSetsInputSchema,
+    handler: listEvalSetsHandler,
+  },
+  {
+    name: "edgegate_update_eval_set",
+    description:
+      "Replace ALL cases of a DRAFT eval-set version (full replacement list, not a patch). " +
+      "Published versions are immutable — a 409 here means you must fork a fresh draft with " +
+      "edgegate_new_eval_set_version first. Still leaves the version a draft; publish " +
+      "separately. Requires workspace write access.",
+    schema: updateEvalSetInputSchema,
+    handler: updateEvalSetHandler,
+  },
+  {
+    name: "edgegate_publish_eval_set",
+    description:
+      "Validate and freeze a draft eval-set version into an immutable, signed, hash-anchored " +
+      "version. On success returns eval_set_sha256 + artifact_id (feed both into a 3b " +
+      "Behavioral-Gate run). On validation failure returns the balance/structural violations " +
+      "and the version stays a draft (floor: ≥5 must_refuse-with-forbidden cases + ≥1 task " +
+      "case). Requires workspace write access.",
+    schema: publishEvalSetInputSchema,
+    handler: publishEvalSetHandler,
+  },
+  {
+    name: "edgegate_new_eval_set_version",
+    description:
+      "Fork a fresh draft (version+1) from a PUBLISHED version, seeded with its cases — the " +
+      "edit-after-publish path. Edit the new draft with edgegate_update_eval_set, then " +
+      "re-publish. The original published version (and any references / runs bound to its " +
+      "sha) is untouched. Requires workspace write access.",
+    schema: newEvalSetVersionInputSchema,
+    handler: newEvalSetVersionHandler,
   },
 ] as const;
 

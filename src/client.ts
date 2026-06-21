@@ -9,6 +9,10 @@ import type {
   ByoGrant,
   ByoSetupInfo,
   DeviceListResponse,
+  EvalCase,
+  EvalPack,
+  EvalSetSummary,
+  EvalSetVersion,
   HFImportJob,
   HuggingFaceConnectResponse,
   HuggingFaceIntegrationStatus,
@@ -370,6 +374,59 @@ export class EdgeGateClient {
     return this.request<PromptPackSummary>(
       "PUT",
       `/v1/workspaces/${workspaceId}/promptpacks/${promptpackId}/${version}/publish`
+    );
+  }
+
+  // Eval-set authoring (Behavioral-Gate / 3d) ──────────────────────────
+  async listEvalPacks(): Promise<EvalPack[]> {
+    return this.request<EvalPack[]>("GET", `/v1/eval-packs`);
+  }
+  async createEvalSet(
+    workspaceId: string,
+    body: { name: string; clone_from?: string; cases?: EvalCase[] }
+  ): Promise<EvalSetVersion> {
+    return this.request<EvalSetVersion>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/eval-sets`,
+      body
+    );
+  }
+  async listEvalSets(workspaceId: string): Promise<EvalSetSummary[]> {
+    return this.request<EvalSetSummary[]>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/eval-sets`
+    );
+  }
+  async updateEvalSet(
+    workspaceId: string,
+    evalSetId: string,
+    versionId: string,
+    cases: EvalCase[]
+  ): Promise<EvalSetVersion> {
+    return this.request<EvalSetVersion>(
+      "PUT",
+      `/v1/workspaces/${workspaceId}/eval-sets/${evalSetId}/versions/${versionId}`,
+      { cases }
+    );
+  }
+  async publishEvalSet(
+    workspaceId: string,
+    evalSetId: string,
+    versionId: string
+  ): Promise<EvalSetVersion> {
+    return this.request<EvalSetVersion>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/eval-sets/${evalSetId}/versions/${versionId}/publish`
+    );
+  }
+  async newEvalSetVersion(
+    workspaceId: string,
+    evalSetId: string,
+    fromVersion: string
+  ): Promise<EvalSetVersion> {
+    return this.request<EvalSetVersion>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/eval-sets/${evalSetId}/versions?from_version=${encodeURIComponent(fromVersion)}`
     );
   }
 

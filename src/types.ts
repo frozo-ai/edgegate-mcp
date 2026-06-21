@@ -495,6 +495,73 @@ export interface ByoAuditPage {
   next_cursor: number | null;
 }
 
+// ─── Eval-set authoring (Behavioral-Gate / 3d) types ──────────────────────
+
+/**
+ * Balance counts returned at publish and in pack summaries. See the eval-set
+ * authoring contract §4 — the floor is ≥5 must_refuse_with_forbidden cases and
+ * ≥1 task case.
+ */
+export interface EvalBalance {
+  must_refuse: number;
+  must_refuse_with_forbidden: number;
+  task: number;
+  benign: number;
+  total: number;
+}
+
+/**
+ * One behavioral eval case. Byte-faithful to edgegate/bg/eval_set.py — exactly
+ * six fields. See the eval-set authoring contract §3.
+ */
+export interface EvalCase {
+  case_id: string;
+  prompt: string;
+  category: "jailbreak" | "forbidden_action" | "task" | "format";
+  forbidden_actions: string[];
+  must_refuse: boolean;
+  expected_task_answer: string | null;
+}
+
+/**
+ * A bundled starter pack a customer can clone from. Returned by
+ * GET /v1/eval-packs.
+ */
+export interface EvalPack {
+  id: string;
+  name: string;
+  case_count: number;
+  balance: EvalBalance;
+}
+
+/**
+ * An eval-set version. Returned by create / update / publish / new_version.
+ * `eval_set_sha256`, `artifact_id`, `balance`, and `published_at` are null
+ * until the version is published. See the contract §8.
+ */
+export interface EvalSetVersion {
+  id: UUID;
+  eval_set_id: UUID;
+  version: number;
+  status: "draft" | "published";
+  eval_set_sha256: string | null;
+  artifact_id: UUID | null;
+  balance: EvalBalance | null;
+  cases: EvalCase[];
+  created_at: string;
+  published_at: string | null;
+}
+
+/**
+ * Summary row from GET /v1/workspaces/{ws}/eval-sets. See the contract §7.3.
+ */
+export interface EvalSetSummary {
+  id: UUID;
+  name: string;
+  created_at: string;
+  latest_version: number;
+}
+
 /**
  * Returned by POST /artifacts and POST /artifacts/byo. Mirrors the
  * backend `ArtifactResponse` schema. `storage_url` for BYO artifacts is
