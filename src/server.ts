@@ -162,6 +162,14 @@ import {
   newEvalSetVersionHandler,
   newEvalSetVersionInputSchema,
 } from "./tools/new_eval_set_version.js";
+import {
+  captureReferenceHandler,
+  captureReferenceInputSchema,
+} from "./tools/capture_reference.js";
+import {
+  checkReferenceCaptureStatusHandler,
+  checkReferenceCaptureStatusInputSchema,
+} from "./tools/check_reference_capture_status.js";
 
 const TOOLS = [
   {
@@ -578,6 +586,25 @@ const TOOLS = [
       "sha) is untouched. Requires workspace write access.",
     schema: newEvalSetVersionInputSchema,
     handler: newEvalSetVersionHandler,
+  },
+  {
+    name: "edgegate_capture_reference",
+    description:
+      "Trigger a reference-oracle capture — the known-good baseline the Behavioral Gate diffs " +
+      "the on-device quantized model against. Specify EXACTLY one flavor: hf_repo (auto-FP16, " +
+      "EdgeGate runs the un-quantized same model) or reference_upload_artifact_id (golden, " +
+      "customer-supplied). Returns a job_id to poll. Requires workspace admin access.",
+    schema: captureReferenceInputSchema,
+    handler: captureReferenceHandler,
+  },
+  {
+    name: "edgegate_check_reference_capture_status",
+    description:
+      "Poll a reference-capture job. When status is done, returns reference_artifact_id — an " +
+      "ArtifactKind.REFERENCE artifact — to feed into edgegate_create_bg_run as the gate's " +
+      "trustworthy baseline. Requires workspace admin access.",
+    schema: checkReferenceCaptureStatusInputSchema,
+    handler: checkReferenceCaptureStatusHandler,
   },
 ] as const;
 

@@ -23,6 +23,9 @@ import type {
   PromptPackCreateBody,
   PromptPackSummary,
   QaihubIntegration,
+  ReferenceCaptureBody,
+  ReferenceCaptureJob,
+  ReferenceCaptureStatus,
   RunBundle,
   RunComparison,
   RunDetail,
@@ -427,6 +430,27 @@ export class EdgeGateClient {
     return this.request<EvalSetVersion>(
       "POST",
       `/v1/workspaces/${workspaceId}/eval-sets/${evalSetId}/versions?from_version=${encodeURIComponent(fromVersion)}`
+    );
+  }
+
+  // Reference-oracle capture (Behavioral-Gate) ──────────────────────────
+  async captureReference(
+    workspaceId: string,
+    body: ReferenceCaptureBody
+  ): Promise<ReferenceCaptureJob> {
+    return this.request<ReferenceCaptureJob>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/reference-captures`,
+      body
+    );
+  }
+  async getReferenceCaptureStatus(
+    workspaceId: string,
+    jobId: string
+  ): Promise<ReferenceCaptureStatus> {
+    return this.request<ReferenceCaptureStatus>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/reference-captures/${jobId}`
     );
   }
 

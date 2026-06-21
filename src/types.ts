@@ -562,6 +562,42 @@ export interface EvalSetSummary {
   latest_version: number;
 }
 
+// ─── Reference-oracle capture types ────────────────────────────────────────
+
+/**
+ * Body for POST /v1/workspaces/{ws}/reference-captures. Mirrors the backend
+ * `ReferenceCaptureRequest` model (edgegate/api/routes/reference_capture.py).
+ * Exactly one flavor selector — `hf_repo` (auto-FP16) XOR
+ * `reference_upload_artifact_id` (golden) — must be set; else 422.
+ */
+export interface ReferenceCaptureBody {
+  eval_set_artifact_id: UUID;
+  system_prompt: string;
+  decode_config?: Record<string, unknown>;
+  hf_repo?: string;
+  reference_upload_artifact_id?: UUID;
+}
+
+/**
+ * Response (202) from POST /v1/workspaces/{ws}/reference-captures.
+ */
+export interface ReferenceCaptureJob {
+  job_id: UUID;
+  flavor: string;
+  status: string;
+}
+
+/**
+ * Response from GET /v1/workspaces/{ws}/reference-captures/{job_id}. The
+ * `reference_artifact_id` (an `ArtifactKind.REFERENCE` artifact) is populated
+ * only when `status` is "done"; feed it into edgegate_create_bg_run.
+ */
+export interface ReferenceCaptureStatus {
+  job_id: UUID;
+  status: string;
+  reference_artifact_id: UUID | null;
+}
+
 /**
  * Returned by POST /artifacts and POST /artifacts/byo. Mirrors the
  * backend `ArtifactResponse` schema. `storage_url` for BYO artifacts is
