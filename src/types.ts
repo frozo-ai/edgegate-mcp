@@ -608,7 +608,7 @@ export interface ReferenceCaptureStatus {
  * decides the lane; empty/multi-selector → 422.
  */
 export interface GenieCompileBody {
-  device_id: string;
+  device_label: string; // backend GenieCompileRequest field name; holds the chipset id (e.g. "sm8550")
   hf_repo?: string;
   onnx_artifact_ids?: UUID[];
   bundle_artifact_id?: UUID;

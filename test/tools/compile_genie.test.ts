@@ -40,7 +40,7 @@ describe("compile_genie", () => {
       http.post(`${apiUrl}/v1/workspaces/${wsId}/genie-compile`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;
         expect(body.hf_repo).toBe("meta-llama/Llama-3.2-1B-Instruct");
-        expect(body.device_id).toBe("sm8550");
+        expect(body.device_label).toBe("sm8550");
         expect(body.onnx_artifact_ids).toBeUndefined();
         expect(body.bundle_artifact_id).toBeUndefined();
         return HttpResponse.json(

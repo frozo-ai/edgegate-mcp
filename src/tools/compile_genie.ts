@@ -52,7 +52,10 @@ export async function compileGenieHandler(
   input: CompileGenieInput
 ): Promise<ToolResult> {
   try {
-    const body: GenieCompileBody = { device_id: input.device_id };
+    // The backend GenieCompileRequest field is `device_label` (it holds the
+    // chipset id string, e.g. "sm8550"); the user-facing param stays `device_id`
+    // for consistency with edgegate_list_devices' `id` column.
+    const body: GenieCompileBody = { device_label: input.device_id };
     if (input.hf_repo !== undefined) body.hf_repo = input.hf_repo;
     if (input.onnx_artifact_ids !== undefined) body.onnx_artifact_ids = input.onnx_artifact_ids;
     if (input.bundle_artifact_id !== undefined)
