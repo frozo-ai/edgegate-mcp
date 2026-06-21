@@ -598,6 +598,69 @@ export interface ReferenceCaptureStatus {
   reference_artifact_id: UUID | null;
 }
 
+// ─── Compile-as-a-feature (genie compile / BG run) types ───────────────────
+
+/**
+ * Body for POST /v1/workspaces/{ws}/genie-compile. Mirrors the backend
+ * `GenieCompileRequest` (edgegate/api/routes/compile_genie.py). Exactly one
+ * lane selector — `hf_repo` (Lane A) XOR `onnx_artifact_ids` (Lane B,
+ * genie-ready multi-part) XOR `bundle_artifact_id` (Lane C, precompiled) —
+ * decides the lane; empty/multi-selector → 422.
+ */
+export interface GenieCompileBody {
+  device_id: string;
+  hf_repo?: string;
+  onnx_artifact_ids?: UUID[];
+  bundle_artifact_id?: UUID;
+}
+
+/**
+ * Response (202) from POST /v1/workspaces/{ws}/genie-compile. Mirrors the
+ * backend `GenieCompileAccepted` schema.
+ */
+export interface GenieCompileJob {
+  job_id: UUID;
+  lane: string;
+  status: string;
+}
+
+/**
+ * Response from GET /v1/workspaces/{ws}/genie-compile/{job_id}. Mirrors the
+ * backend `GenieCompileStatus` schema. The `bundle_artifact_id` is populated
+ * only when `status` is "done"; feed it into edgegate_create_bg_run.
+ */
+export interface GenieCompileStatus {
+  job_id: UUID;
+  lane: string;
+  status: string;
+  bundle_artifact_id: UUID | null;
+}
+
+/**
+ * Body for POST /v1/workspaces/{ws}/bg-runs. Mirrors the backend
+ * `BgRunCreateRequest` (edgegate/api/routes/compile_genie.py). Wires a
+ * compiled bundle + eval set + reference into a Run (populates
+ * `Run.runner_config_json`).
+ */
+export interface BgRunCreateBody {
+  bundle_artifact_id: UUID;
+  eval_set_artifact_id: UUID;
+  reference_artifact_id: UUID;
+  vendor?: string;
+  system_prompt?: string;
+  decode_config?: Record<string, unknown>;
+  device_label?: string;
+}
+
+/**
+ * Response (201) from POST /v1/workspaces/{ws}/bg-runs. Mirrors the backend
+ * `BgRunResponse` schema.
+ */
+export interface BgRunResponse {
+  run_id: UUID;
+  status: string;
+}
+
 /**
  * Returned by POST /artifacts and POST /artifacts/byo. Mirrors the
  * backend `ArtifactResponse` schema. `storage_url` for BYO artifacts is

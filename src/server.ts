@@ -170,6 +170,18 @@ import {
   checkReferenceCaptureStatusHandler,
   checkReferenceCaptureStatusInputSchema,
 } from "./tools/check_reference_capture_status.js";
+import {
+  compileGenieHandler,
+  compileGenieInputSchema,
+} from "./tools/compile_genie.js";
+import {
+  checkGenieCompileStatusHandler,
+  checkGenieCompileStatusInputSchema,
+} from "./tools/check_genie_compile_status.js";
+import {
+  createBgRunHandler,
+  createBgRunInputSchema,
+} from "./tools/create_bg_run.js";
 
 const TOOLS = [
   {
@@ -605,6 +617,37 @@ const TOOLS = [
       "trustworthy baseline. Requires workspace admin access.",
     schema: checkReferenceCaptureStatusInputSchema,
     handler: checkReferenceCaptureStatusHandler,
+  },
+  {
+    name: "edgegate_compile_genie",
+    description:
+      "Submit a 3-lane genie compile for the Behavioral Gate's self-hosted runner. Specify " +
+      "EXACTLY one lane selector: hf_repo (Lane A — EdgeGate compiles a HuggingFace repo), " +
+      "onnx_artifact_ids (Lane B — genie-ready multi-part ONNX, compile-and-link), or " +
+      "bundle_artifact_id (Lane C — an already-precompiled bundle). Returns a job_id to poll. " +
+      "Requires workspace admin access.",
+    schema: compileGenieInputSchema,
+    handler: compileGenieHandler,
+  },
+  {
+    name: "edgegate_check_genie_compile_status",
+    description:
+      "Poll a genie-compile job. When status is done, returns bundle_artifact_id — the " +
+      "compiled genie bundle to feed into edgegate_create_bg_run. Requires workspace admin " +
+      "access.",
+    schema: checkGenieCompileStatusInputSchema,
+    handler: checkGenieCompileStatusHandler,
+  },
+  {
+    name: "edgegate_create_bg_run",
+    description:
+      "Wire a compiled genie bundle + published eval set + reference oracle into a " +
+      "behavioral-gate Run — populates Run.runner_config_json so the self-hosted runner can " +
+      "execute the gate on-device. Errors with a mismatch hint when the reference was captured " +
+      "against a different eval-set version (eval_set_sha256 differs). Requires workspace admin " +
+      "access.",
+    schema: createBgRunInputSchema,
+    handler: createBgRunHandler,
   },
 ] as const;
 

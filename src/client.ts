@@ -4,6 +4,8 @@ import type {
   APIKeyCreatedResponse,
   APIKeyListItem,
   ArtifactResponse,
+  BgRunCreateBody,
+  BgRunResponse,
   ByoArtifactRegisterRequest,
   ByoAuditPage,
   ByoGrant,
@@ -13,6 +15,9 @@ import type {
   EvalPack,
   EvalSetSummary,
   EvalSetVersion,
+  GenieCompileBody,
+  GenieCompileJob,
+  GenieCompileStatus,
   HFImportJob,
   HuggingFaceConnectResponse,
   HuggingFaceIntegrationStatus,
@@ -451,6 +456,37 @@ export class EdgeGateClient {
     return this.request<ReferenceCaptureStatus>(
       "GET",
       `/v1/workspaces/${workspaceId}/reference-captures/${jobId}`
+    );
+  }
+
+  // Compile-as-a-feature (genie compile / BG run) ───────────────────────
+  async submitGenieCompile(
+    workspaceId: string,
+    body: GenieCompileBody
+  ): Promise<GenieCompileJob> {
+    return this.request<GenieCompileJob>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/genie-compile`,
+      body
+    );
+  }
+  async getGenieCompileStatus(
+    workspaceId: string,
+    jobId: string
+  ): Promise<GenieCompileStatus> {
+    return this.request<GenieCompileStatus>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/genie-compile/${jobId}`
+    );
+  }
+  async createBgRun(
+    workspaceId: string,
+    body: BgRunCreateBody
+  ): Promise<BgRunResponse> {
+    return this.request<BgRunResponse>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/bg-runs`,
+      body
     );
   }
 
