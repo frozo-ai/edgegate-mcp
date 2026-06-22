@@ -490,6 +490,23 @@ export class EdgeGateClient {
     );
   }
 
+  async cancelRun(
+    workspaceId: string,
+    runId: string
+  ): Promise<{ run_id: string; status: string }> {
+    return this.request<{ run_id: string; status: string }>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/runs/${runId}/cancel`
+    );
+  }
+
+  async rerunBg(workspaceId: string, runId: string): Promise<BgRunResponse> {
+    return this.request<BgRunResponse>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/runs/${runId}/rerun-bg`
+    );
+  }
+
   // BYO storage (Enterprise) ────────────────────────────────────────────
   async registerByoGrant(
     workspaceId: string,

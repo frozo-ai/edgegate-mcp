@@ -182,6 +182,12 @@ import {
   createBgRunHandler,
   createBgRunInputSchema,
 } from "./tools/create_bg_run.js";
+import { cancelRunHandler, cancelRunInputSchema } from "./tools/cancel_run.js";
+import { rerunBgHandler, rerunBgInputSchema } from "./tools/rerun_bg.js";
+import {
+  setupBgGithubActionHandler,
+  setupBgGithubActionInputSchema,
+} from "./tools/setup_bg_github_action.js";
 
 const TOOLS = [
   {
@@ -648,6 +654,34 @@ const TOOLS = [
       "access.",
     schema: createBgRunInputSchema,
     handler: createBgRunHandler,
+  },
+  {
+    name: "edgegate_cancel_run",
+    description:
+      "Cancel a non-terminal run, freeing the workspace's single active-run slot. Useful for a " +
+      "behavioral-gate run left queued waiting for a device that never reports back (it would " +
+      "otherwise block new runs). 409 if the run is already terminal.",
+    schema: cancelRunInputSchema,
+    handler: cancelRunHandler,
+  },
+  {
+    name: "edgegate_rerun_bg",
+    description:
+      "Re-run an existing behavioral-gate run: clones its already-validated config (same bundle + " +
+      "eval set + reference + system prompt + device) into a fresh queued run — no need to " +
+      "re-supply artifact ids. 409 if the workspace already has an active run (cancel it first).",
+    schema: rerunBgInputSchema,
+    handler: rerunBgHandler,
+  },
+  {
+    name: "edgegate_setup_bg_github_action",
+    description:
+      "Generate the Behavioral-Gate GitHub Actions setup — the self-hosted-runner prerequisites, " +
+      "the workflow YAML (using the edgegate-bg composite action), and the gh secret commands. " +
+      "Unlike the standard run gate, BG runs the model on a real device, so it needs a " +
+      "self-hosted runner with the device attached.",
+    schema: setupBgGithubActionInputSchema,
+    handler: setupBgGithubActionHandler,
   },
 ] as const;
 
