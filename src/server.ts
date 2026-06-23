@@ -188,6 +188,10 @@ import {
   setupBgGithubActionHandler,
   setupBgGithubActionInputSchema,
 } from "./tools/setup_bg_github_action.js";
+import {
+  exportComplianceReportHandler,
+  exportComplianceReportInputSchema,
+} from "./tools/export_compliance_report.js";
 
 const TOOLS = [
   {
@@ -682,6 +686,17 @@ const TOOLS = [
       "self-hosted runner with the device attached.",
     schema: setupBgGithubActionInputSchema,
     handler: setupBgGithubActionHandler,
+  },
+  {
+    name: "edgegate_export_compliance_report",
+    description:
+      "Export the compliance-preset report for a run (e.g. ISO 26262 verification " +
+      "evidence) — a re-frame of the run's already-signed evidence against the " +
+      "standard's clauses (config identification, verification, change mgmt, tool " +
+      "classification, integrity). Verification evidence, NOT a compliance " +
+      "certification. The formatted assessor PDF is on the dashboard run page.",
+    schema: exportComplianceReportInputSchema,
+    handler: exportComplianceReportHandler,
   },
 ] as const;
 

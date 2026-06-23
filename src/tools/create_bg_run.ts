@@ -43,6 +43,14 @@ export const createBgRunInputSchema = z
         "Human-readable device label, e.g. " +
           '"Samsung Galaxy S23 Ultra / Snapdragon 8 Gen 2 (SM8550)".'
       ),
+    requirement_map: z
+      .record(z.record(z.string()))
+      .optional()
+      .describe(
+        "ISO 26262 traceability: maps a gate/signal name to its safety requirement " +
+          'id + ASIL, e.g. {"forbidden_action": {"requirement_id": "SR-CABIN-014", ' +
+          '"asil": "B"}}. Surfaced by edgegate_export_compliance_report.'
+      ),
   })
   .strict();
 
@@ -62,6 +70,7 @@ export async function createBgRunHandler(
     if (input.system_prompt !== undefined) body.system_prompt = input.system_prompt;
     if (input.decode_config !== undefined) body.decode_config = input.decode_config;
     if (input.device_label !== undefined) body.device_label = input.device_label;
+    if (input.requirement_map !== undefined) body.requirement_map = input.requirement_map;
 
     const run = await client.createBgRun(input.workspace_id, body);
 

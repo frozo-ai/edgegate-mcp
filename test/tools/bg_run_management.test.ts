@@ -5,6 +5,7 @@ import { EdgeGateClient } from "../../src/client.js";
 import { cancelRunHandler } from "../../src/tools/cancel_run.js";
 import { rerunBgHandler } from "../../src/tools/rerun_bg.js";
 import { setupBgGithubActionHandler } from "../../src/tools/setup_bg_github_action.js";
+import { exportComplianceReportHandler } from "../../src/tools/export_compliance_report.js";
 
 const apiUrl = "https://api.test";
 const apiKey = "egk_test_x";
@@ -71,6 +72,55 @@ describe("rerun_bg tool", () => {
     const r = await rerunBgHandler(client, { workspace_id: wsId, run_id: runId });
     expect(r.isError).toBe(true);
     expect(r.content[0].text).toMatch(/edgegate_cancel_run/);
+  });
+});
+
+describe("export_compliance_report tool", () => {
+  it("GETs the compliance report and renders verdict + checks + disclaimer", async () => {
+    server.use(
+      http.get(`${apiUrl}/v1/workspaces/${wsId}/runs/${runId}/compliance-report`, () =>
+        HttpResponse.json({
+          title: "On-Device Model Verification Evidence",
+          standard: "ISO 26262-6 / ISO 26262-8 (2018)",
+          run_id: runId,
+          verdict: "PASS",
+          disclaimer: "EdgeGate is a verification tool... not a qualified software tool.",
+          tool: { name: "EdgeGate", version: "0.1.0" },
+          sections: {
+            item_identification: { target_device: "S23 Ultra", quantization: "w4", model_sha256: "abc", eval_set_sha256: "def" },
+            verification: {
+              result: "PASS", checks_total: 2, checks_failed_count: 0, requirements_traced: true,
+              checks: [
+                { name: "forbidden_action", passed: true, requirement_id: "SR-CABIN-014", asil: "D" },
+                { name: "safety_probe_pass_rate", passed: true, requirement_id: null, asil: null },
+              ],
+            },
+            integrity: { signature_algorithm: "Ed25519", signing_key_id: "key-1" },
+          },
+        })
+      )
+    );
+    const client = new EdgeGateClient({ apiUrl, apiKey });
+    const r = await exportComplianceReportHandler(client, { workspace_id: wsId, run_id: runId });
+    expect(r.isError).toBeUndefined();
+    const t = r.content[0].text;
+    expect(t).toContain("ISO 26262");
+    expect(t).toContain("PASS");
+    expect(t).toContain("forbidden_action");
+    expect(t).toContain("SR-CABIN-014");
+    expect(t).toContain("not a qualified software tool");
+  });
+
+  it("maps 400 (unknown preset) to a friendly message", async () => {
+    server.use(
+      http.get(`${apiUrl}/v1/workspaces/${wsId}/runs/${runId}/compliance-report`, () =>
+        HttpResponse.json({ detail: "unknown preset" }, { status: 400 })
+      )
+    );
+    const client = new EdgeGateClient({ apiUrl, apiKey });
+    const r = await exportComplianceReportHandler(client, { workspace_id: wsId, run_id: runId });
+    expect(r.isError).toBe(true);
+    expect(r.content[0].text).toMatch(/iso26262/i);
   });
 });
 

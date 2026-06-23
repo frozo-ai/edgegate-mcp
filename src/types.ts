@@ -650,6 +650,8 @@ export interface BgRunCreateBody {
   system_prompt?: string;
   decode_config?: Record<string, unknown>;
   device_label?: string;
+  // ISO 26262 traceability: gate/signal name -> { requirement_id, asil }.
+  requirement_map?: Record<string, Record<string, string>>;
 }
 
 /**

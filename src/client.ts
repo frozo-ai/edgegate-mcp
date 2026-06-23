@@ -178,6 +178,16 @@ export class EdgeGateClient {
   async getRun(workspaceId: string, runId: string): Promise<RunDetail> {
     return this.request<RunDetail>("GET", `/v1/workspaces/${workspaceId}/runs/${runId}`);
   }
+  async getComplianceReport(
+    workspaceId: string,
+    runId: string,
+    preset = "iso26262"
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/runs/${runId}/compliance-report?preset=${encodeURIComponent(preset)}`
+    );
+  }
   async listRuns(workspaceId: string, limit = 20): Promise<RunSummary[]> {
     return this.request<RunSummary[]>(
       "GET",
