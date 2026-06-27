@@ -33,7 +33,12 @@ describe("happy path", () => {
           compute_weighted_npu_coverage: 97.0,
           compute_weighted: true,
           cpu_fallback_ops: [
-            { op_type: "TopK", reason: "Not supported on Hexagon NPU", recommendation: "Move to post-processing", compute_pct: 3.0 },
+            {
+              op_type: "TopK",
+              reason: "Not supported on Hexagon NPU",
+              recommendation: "Move to post-processing",
+              compute_pct: 3.0,
+            },
           ],
           recommendations: [{ op: "TopK", fix: "Move to post-processing pipeline." }],
           model_name: "mobilenet.onnx",
@@ -64,12 +69,7 @@ describe("happy path", () => {
 describe("non-ONNX artifact (400)", () => {
   it("returns isError with an ONNX-only message", async () => {
     server.use(
-      http.post(path, () =>
-        HttpResponse.json(
-          { detail: "Got: model.tflite" },
-          { status: 400 }
-        )
-      )
+      http.post(path, () => HttpResponse.json({ detail: "Got: model.tflite" }, { status: 400 }))
     );
 
     const client = new EdgeGateClient({ apiUrl, apiKey });

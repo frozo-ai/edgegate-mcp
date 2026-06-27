@@ -71,8 +71,7 @@ export async function predictNpuCoverageHandler(
     if (p.cpu_fallback_ops.length > 0) {
       lines.push(``, `**CPU fallbacks:**`);
       for (const op of p.cpu_fallback_ops.slice(0, 10)) {
-        const pct =
-          typeof op.compute_pct === "number" ? ` — ${op.compute_pct}% of compute` : "";
+        const pct = typeof op.compute_pct === "number" ? ` — ${op.compute_pct}% of compute` : "";
         lines.push(`- ${op.op_type}${pct}`);
       }
     }
