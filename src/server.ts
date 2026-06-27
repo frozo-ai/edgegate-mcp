@@ -31,6 +31,10 @@ import {
   importHuggingfaceModelInputSchema,
 } from "./tools/import_huggingface_model.js";
 import {
+  predictNpuCoverageHandler,
+  predictNpuCoverageInputSchema,
+} from "./tools/predict_npu_coverage.js";
+import {
   listPromptpacksHandler,
   listPromptpacksInputSchema,
 } from "./tools/list_promptpacks.js";
@@ -281,6 +285,16 @@ const TOOLS = [
       "(poll_for_completion=true); set to false to return immediately with the job id.",
     schema: importHuggingfaceModelInputSchema,
     handler: importHuggingfaceModelHandler,
+  },
+  {
+    name: "edgegate_predict_npu_coverage",
+    description:
+      "Predict which ONNX ops will run on the Qualcomm Hexagon NPU vs fall back to CPU, " +
+      "BEFORE spending any AI Hub credits. Returns a compute-weighted NPU coverage % (the " +
+      "latency-honest number), op-count coverage, risk band, per-op CPU fallbacks, and fix " +
+      "recommendations. Heuristic — the real device run remains authoritative.",
+    schema: predictNpuCoverageInputSchema,
+    handler: predictNpuCoverageHandler,
   },
   {
     name: "edgegate_list_promptpacks",

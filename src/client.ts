@@ -83,6 +83,15 @@ export class EdgeGateClient {
   async listDevices(): Promise<DeviceListResponse> {
     return this.request<DeviceListResponse>("GET", `/v1/aihub/devices`);
   }
+  async predictNpuCoverage(
+    workspaceId: string,
+    artifactId: string
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/artifacts/${artifactId}/predict-npu-coverage`
+    );
+  }
   async createAPIKey(
     workspaceId: string,
     body: { name: string; expires_at?: string }
