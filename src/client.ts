@@ -89,7 +89,9 @@ export class EdgeGateClient {
   ): Promise<Record<string, unknown>> {
     return this.request<Record<string, unknown>>(
       "POST",
-      `/v1/workspaces/${workspaceId}/artifacts/${artifactId}/predict-npu-coverage`
+      `/v1/workspaces/${workspaceId}/artifacts/${artifactId}/predict-npu-coverage`,
+      undefined,
+      120_000
     );
   }
   async createAPIKey(
@@ -634,7 +636,8 @@ export class EdgeGateClient {
   private async request<T>(
     method: "GET" | "POST" | "DELETE" | "PUT",
     path: string,
-    body?: unknown
+    body?: unknown,
+    timeoutMs?: number
   ): Promise<T> {
     const url = `${this.apiUrl}${path}`;
     const isIdempotent = method === "GET";
@@ -651,7 +654,7 @@ export class EdgeGateClient {
         method,
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(this.timeoutMs),
+        signal: AbortSignal.timeout(timeoutMs ?? this.timeoutMs),
       });
       const text = await resp.text();
       const json = text ? safeJson(text) : null;
