@@ -90,6 +90,17 @@ export class EdgeGateClient {
       `/v1/workspaces/${workspaceId}/devices`
     );
   }
+  async createDeviceBenchmarkJob(
+    workspaceId: string,
+    deviceRef: string,
+    body: { model_artifact_id: string; model_name?: string }
+  ): Promise<{ id: string; model_name: string; status: string }> {
+    return this.request<{ id: string; model_name: string; status: string }>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/devices/${deviceRef}/jobs`,
+      body
+    );
+  }
   async predictNpuCoverage(
     workspaceId: string,
     artifactId: string

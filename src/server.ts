@@ -99,6 +99,10 @@ import {
   listDeviceTargetsInputSchema,
 } from "./tools/list_device_targets.js";
 import {
+  runDeviceBenchmarkHandler,
+  runDeviceBenchmarkInputSchema,
+} from "./tools/run_device_benchmark.js";
+import {
   inviteMemberHandler,
   inviteMemberInputSchema,
 } from "./tools/invite_member.js";
@@ -448,6 +452,16 @@ const TOOLS = [
       "the response includes copy-paste connect instructions for the customer.",
     schema: listDeviceTargetsInputSchema,
     handler: listDeviceTargetsHandler,
+  },
+  {
+    name: "edgegate_run_device_benchmark",
+    description:
+      "Dispatch an ONNX benchmark to one of the customer's connected devices " +
+      "(Jetson, Snapdragon host, gateway) by name/id. The on-device agent picks it " +
+      "up within ~30s and reports latency/memory results. Multi-silicon: works for " +
+      "any vendor the customer has connected. Requires admin role.",
+    schema: runDeviceBenchmarkInputSchema,
+    handler: runDeviceBenchmarkHandler,
   },
   {
     name: "edgegate_invite_member",
