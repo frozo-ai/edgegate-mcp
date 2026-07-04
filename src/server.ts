@@ -95,6 +95,10 @@ import {
   listDevicesInputSchema,
 } from "./tools/list_devices.js";
 import {
+  listDeviceTargetsHandler,
+  listDeviceTargetsInputSchema,
+} from "./tools/list_device_targets.js";
+import {
   inviteMemberHandler,
   inviteMemberInputSchema,
 } from "./tools/invite_member.js";
@@ -433,6 +437,17 @@ const TOOLS = [
       "catalog is global.",
     schema: listDevicesInputSchema,
     handler: listDevicesHandler,
+  },
+  {
+    name: "edgegate_list_device_targets",
+    description:
+      "List the customer's OWN connected devices (Jetson, Snapdragon hosts, gateways) " +
+      "with live/offline status computed from each device's heartbeat (30s beat, 90s " +
+      "window). This is the workspace fleet connected via `edgegate-runner agent` — " +
+      "NOT the global AI Hub catalog (use edgegate_list_devices for that). If empty, " +
+      "the response includes copy-paste connect instructions for the customer.",
+    schema: listDeviceTargetsInputSchema,
+    handler: listDeviceTargetsHandler,
   },
   {
     name: "edgegate_invite_member",

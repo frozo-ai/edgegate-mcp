@@ -11,6 +11,7 @@ import type {
   ByoGrant,
   ByoSetupInfo,
   DeviceListResponse,
+  DeviceTarget,
   EvalCase,
   EvalPack,
   EvalSetSummary,
@@ -82,6 +83,12 @@ export class EdgeGateClient {
   }
   async listDevices(): Promise<DeviceListResponse> {
     return this.request<DeviceListResponse>("GET", `/v1/aihub/devices`);
+  }
+  async listDeviceTargets(workspaceId: string): Promise<DeviceTarget[]> {
+    return this.request<DeviceTarget[]>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/devices`
+    );
   }
   async predictNpuCoverage(
     workspaceId: string,

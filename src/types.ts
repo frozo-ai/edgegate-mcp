@@ -209,6 +209,20 @@ export interface DeviceListResponse {
   total: number;
 }
 
+/** A customer-connected device (edgegate-runner agent / edgegate-agent) with
+ *  server-computed liveness. Distinct from DeviceEntry (AI Hub catalog). */
+export interface DeviceTarget {
+  id: string;
+  device_id: string;
+  name: string;
+  chip: string | null;
+  chip_vendor: string | null;
+  runtime: string | null;
+  /** "online" | "offline" — computed from last_seen_at (90s window). */
+  status: string;
+  last_seen_at: string | null;
+}
+
 // ─── Workspace + member management types ──────────────────────────────────
 
 export type WorkspaceRole = "owner" | "admin" | "viewer";
