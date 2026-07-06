@@ -204,6 +204,18 @@ import {
   exportComplianceReportHandler,
   exportComplianceReportInputSchema,
 } from "./tools/export_compliance_report.js";
+import {
+  exportFieldRecorderReportHandler,
+  exportFieldRecorderReportInputSchema,
+} from "./tools/export_field_recorder_report.js";
+import {
+  recorderStatusHandler,
+  recorderStatusInputSchema,
+} from "./tools/recorder_status.js";
+import {
+  triggerRecorderReplayHandler,
+  triggerRecorderReplayInputSchema,
+} from "./tools/trigger_recorder_replay.js";
 
 const TOOLS = [
   {
@@ -740,6 +752,36 @@ const TOOLS = [
       "certification. The formatted assessor PDF is on the dashboard run page.",
     schema: exportComplianceReportInputSchema,
     handler: exportComplianceReportHandler,
+  },
+  {
+    name: "edgegate_export_field_recorder_report",
+    description:
+      "Export the Field Recorder EU AI Act Article 12 record-keeping report for a " +
+      "date range — the signed, hash-chained evidence of what deployed models did " +
+      "on-device (clause 12(1)/12(2)(a)/12(2)(b)/integrity mapping, event summary, " +
+      "Ed25519 signature). Verification evidence, NOT a compliance certification. " +
+      "The formatted assessor PDF is on the Field Recorder dashboard page.",
+    schema: exportFieldRecorderReportInputSchema,
+    handler: exportFieldRecorderReportHandler,
+  },
+  {
+    name: "edgegate_recorder_status",
+    description:
+      "Field Recorder status for a workspace: recorded-event counts, replay/" +
+      "divergence breakdown (passed/diverged/no_reference), hash-chain integrity " +
+      "(verified, gaps, signing keys), and the devices reporting in. Read-only.",
+    schema: recorderStatusInputSchema,
+    handler: recorderStatusHandler,
+  },
+  {
+    name: "edgegate_trigger_replay",
+    description:
+      "Replay pending recorded events against their certified reference (a PASSED " +
+      "gate run for the same model) plus the input-matched baseline. Verdicts land " +
+      "asynchronously — poll edgegate_recorder_status. Events with no certified " +
+      "reference resolve to no_reference.",
+    schema: triggerRecorderReplayInputSchema,
+    handler: triggerRecorderReplayHandler,
   },
 ] as const;
 

@@ -217,6 +217,41 @@ export class EdgeGateClient {
       `/v1/workspaces/${workspaceId}/runs/${runId}/compliance-report?preset=${encodeURIComponent(preset)}`
     );
   }
+  async getFieldRecorderReport(
+    workspaceId: string,
+    from: string,
+    to: string,
+    deviceId?: string
+  ): Promise<Record<string, unknown>> {
+    const qp = new URLSearchParams({ from, to, format: "json" });
+    if (deviceId) qp.set("device_id", deviceId);
+    return this.request<Record<string, unknown>>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/recorder/article12-report?${qp.toString()}`
+    );
+  }
+  async getRecorderSummary(
+    workspaceId: string,
+    deviceId?: string
+  ): Promise<Record<string, unknown>> {
+    const qp = new URLSearchParams();
+    if (deviceId) qp.set("device_id", deviceId);
+    const suffix = qp.toString() ? `?${qp.toString()}` : "";
+    return this.request<Record<string, unknown>>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/recorder/divergence-summary${suffix}`
+    );
+  }
+  async triggerRecorderReplay(
+    workspaceId: string,
+    body: { device_id?: string | null; limit?: number }
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/recorder/replay`,
+      body
+    );
+  }
   async listRuns(workspaceId: string, limit = 20): Promise<RunSummary[]> {
     return this.request<RunSummary[]>(
       "GET",
