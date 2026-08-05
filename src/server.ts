@@ -1,9 +1,6 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { EdgeGateClient } from "./client.js";
 import { VERSION } from "./version.js";
@@ -18,14 +15,8 @@ import {
   setupGithubActionHandler,
   setupGithubActionInputSchema,
 } from "./tools/setup_github_action.js";
-import {
-  compareRunsHandler,
-  compareRunsInputSchema,
-} from "./tools/compare_runs.js";
-import {
-  exportRunReportHandler,
-  exportRunReportInputSchema,
-} from "./tools/export_run_report.js";
+import { compareRunsHandler, compareRunsInputSchema } from "./tools/compare_runs.js";
+import { exportRunReportHandler, exportRunReportInputSchema } from "./tools/export_run_report.js";
 import {
   importHuggingfaceModelHandler,
   importHuggingfaceModelInputSchema,
@@ -34,14 +25,8 @@ import {
   predictNpuCoverageHandler,
   predictNpuCoverageInputSchema,
 } from "./tools/predict_npu_coverage.js";
-import {
-  listPromptpacksHandler,
-  listPromptpacksInputSchema,
-} from "./tools/list_promptpacks.js";
-import {
-  createPromptpackHandler,
-  createPromptpackInputSchema,
-} from "./tools/create_promptpack.js";
+import { listPromptpacksHandler, listPromptpacksInputSchema } from "./tools/list_promptpacks.js";
+import { createPromptpackHandler, createPromptpackInputSchema } from "./tools/create_promptpack.js";
 import {
   publishPromptpackHandler,
   publishPromptpackInputSchema,
@@ -58,42 +43,18 @@ import {
   getHuggingfaceIntegrationHandler,
   getHuggingfaceIntegrationInputSchema,
 } from "./tools/get_huggingface_integration.js";
-import {
-  connectQaihubHandler,
-  connectQaihubInputSchema,
-} from "./tools/connect_qaihub.js";
+import { connectQaihubHandler, connectQaihubInputSchema } from "./tools/connect_qaihub.js";
 import {
   getQaihubIntegrationHandler,
   getQaihubIntegrationInputSchema,
 } from "./tools/get_qaihub_integration.js";
-import {
-  disconnectQaihubHandler,
-  disconnectQaihubInputSchema,
-} from "./tools/disconnect_qaihub.js";
-import {
-  createWorkspaceHandler,
-  createWorkspaceInputSchema,
-} from "./tools/create_workspace.js";
-import {
-  listApiKeysHandler,
-  listApiKeysInputSchema,
-} from "./tools/list_api_keys.js";
-import {
-  createApiKeyHandler,
-  createApiKeyInputSchema,
-} from "./tools/create_api_key.js";
-import {
-  revokeApiKeyHandler,
-  revokeApiKeyInputSchema,
-} from "./tools/revoke_api_key.js";
-import {
-  listMembersHandler,
-  listMembersInputSchema,
-} from "./tools/list_members.js";
-import {
-  listDevicesHandler,
-  listDevicesInputSchema,
-} from "./tools/list_devices.js";
+import { disconnectQaihubHandler, disconnectQaihubInputSchema } from "./tools/disconnect_qaihub.js";
+import { createWorkspaceHandler, createWorkspaceInputSchema } from "./tools/create_workspace.js";
+import { listApiKeysHandler, listApiKeysInputSchema } from "./tools/list_api_keys.js";
+import { createApiKeyHandler, createApiKeyInputSchema } from "./tools/create_api_key.js";
+import { revokeApiKeyHandler, revokeApiKeyInputSchema } from "./tools/revoke_api_key.js";
+import { listMembersHandler, listMembersInputSchema } from "./tools/list_members.js";
+import { listDevicesHandler, listDevicesInputSchema } from "./tools/list_devices.js";
 import {
   listDeviceTargetsHandler,
   listDeviceTargetsInputSchema,
@@ -102,34 +63,19 @@ import {
   runDeviceBenchmarkHandler,
   runDeviceBenchmarkInputSchema,
 } from "./tools/run_device_benchmark.js";
-import {
-  inviteMemberHandler,
-  inviteMemberInputSchema,
-} from "./tools/invite_member.js";
+import { inviteMemberHandler, inviteMemberInputSchema } from "./tools/invite_member.js";
 import {
   changeMemberRoleHandler,
   changeMemberRoleInputSchema,
 } from "./tools/change_member_role.js";
-import {
-  removeMemberHandler,
-  removeMemberInputSchema,
-} from "./tools/remove_member.js";
+import { removeMemberHandler, removeMemberInputSchema } from "./tools/remove_member.js";
 import {
   registerByoBucketHandler,
   registerByoBucketInputSchema,
 } from "./tools/register_byo_bucket.js";
-import {
-  setupByoStorageHandler,
-  setupByoStorageInputSchema,
-} from "./tools/setup_byo_storage.js";
-import {
-  attachByoRoleHandler,
-  attachByoRoleInputSchema,
-} from "./tools/attach_byo_role.js";
-import {
-  checkByoBucketHandler,
-  checkByoBucketInputSchema,
-} from "./tools/check_byo_bucket.js";
+import { setupByoStorageHandler, setupByoStorageInputSchema } from "./tools/setup_byo_storage.js";
+import { attachByoRoleHandler, attachByoRoleInputSchema } from "./tools/attach_byo_role.js";
+import { checkByoBucketHandler, checkByoBucketInputSchema } from "./tools/check_byo_bucket.js";
 import {
   registerByoArtifactHandler,
   registerByoArtifactInputSchema,
@@ -138,62 +84,32 @@ import {
   disconnectByoBucketHandler,
   disconnectByoBucketInputSchema,
 } from "./tools/disconnect_byo_bucket.js";
-import {
-  getByoAuditHandler,
-  getByoAuditInputSchema,
-} from "./tools/get_byo_audit.js";
-import {
-  llmCompileHandler,
-  llmCompileInputSchema,
-} from "./tools/llm_compile.js";
+import { getByoAuditHandler, getByoAuditInputSchema } from "./tools/get_byo_audit.js";
+import { llmCompileHandler, llmCompileInputSchema } from "./tools/llm_compile.js";
 import {
   checkLLMCompileStatusHandler,
   checkLLMCompileStatusInputSchema,
 } from "./tools/check_llm_compile_status.js";
-import {
-  listEvalPacksHandler,
-  listEvalPacksInputSchema,
-} from "./tools/list_eval_packs.js";
-import {
-  createEvalSetHandler,
-  createEvalSetInputSchema,
-} from "./tools/create_eval_set.js";
-import {
-  listEvalSetsHandler,
-  listEvalSetsInputSchema,
-} from "./tools/list_eval_sets.js";
-import {
-  updateEvalSetHandler,
-  updateEvalSetInputSchema,
-} from "./tools/update_eval_set.js";
-import {
-  publishEvalSetHandler,
-  publishEvalSetInputSchema,
-} from "./tools/publish_eval_set.js";
+import { listEvalPacksHandler, listEvalPacksInputSchema } from "./tools/list_eval_packs.js";
+import { createEvalSetHandler, createEvalSetInputSchema } from "./tools/create_eval_set.js";
+import { listEvalSetsHandler, listEvalSetsInputSchema } from "./tools/list_eval_sets.js";
+import { updateEvalSetHandler, updateEvalSetInputSchema } from "./tools/update_eval_set.js";
+import { publishEvalSetHandler, publishEvalSetInputSchema } from "./tools/publish_eval_set.js";
 import {
   newEvalSetVersionHandler,
   newEvalSetVersionInputSchema,
 } from "./tools/new_eval_set_version.js";
-import {
-  captureReferenceHandler,
-  captureReferenceInputSchema,
-} from "./tools/capture_reference.js";
+import { captureReferenceHandler, captureReferenceInputSchema } from "./tools/capture_reference.js";
 import {
   checkReferenceCaptureStatusHandler,
   checkReferenceCaptureStatusInputSchema,
 } from "./tools/check_reference_capture_status.js";
-import {
-  compileGenieHandler,
-  compileGenieInputSchema,
-} from "./tools/compile_genie.js";
+import { compileGenieHandler, compileGenieInputSchema } from "./tools/compile_genie.js";
 import {
   checkGenieCompileStatusHandler,
   checkGenieCompileStatusInputSchema,
 } from "./tools/check_genie_compile_status.js";
-import {
-  createBgRunHandler,
-  createBgRunInputSchema,
-} from "./tools/create_bg_run.js";
+import { createBgRunHandler, createBgRunInputSchema } from "./tools/create_bg_run.js";
 import { cancelRunHandler, cancelRunInputSchema } from "./tools/cancel_run.js";
 import { rerunBgHandler, rerunBgInputSchema } from "./tools/rerun_bg.js";
 import {
@@ -208,10 +124,7 @@ import {
   exportFieldRecorderReportHandler,
   exportFieldRecorderReportInputSchema,
 } from "./tools/export_field_recorder_report.js";
-import {
-  recorderStatusHandler,
-  recorderStatusInputSchema,
-} from "./tools/recorder_status.js";
+import { recorderStatusHandler, recorderStatusInputSchema } from "./tools/recorder_status.js";
 import {
   triggerRecorderReplayHandler,
   triggerRecorderReplayInputSchema,

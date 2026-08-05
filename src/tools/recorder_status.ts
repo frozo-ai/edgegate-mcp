@@ -9,10 +9,7 @@ import type { ToolResult } from "./setup_workspace.js";
 export const recorderStatusInputSchema = z
   .object({
     workspace_id: z.string().uuid(),
-    device_id: z
-      .string()
-      .optional()
-      .describe("Optional — scope the status to a single device."),
+    device_id: z.string().optional().describe("Optional — scope the status to a single device."),
   })
   .strict();
 

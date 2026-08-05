@@ -85,10 +85,7 @@ export class EdgeGateClient {
     return this.request<DeviceListResponse>("GET", `/v1/aihub/devices`);
   }
   async listDeviceTargets(workspaceId: string): Promise<DeviceTarget[]> {
-    return this.request<DeviceTarget[]>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/devices`
-    );
+    return this.request<DeviceTarget[]>("GET", `/v1/workspaces/${workspaceId}/devices`);
   }
   async createDeviceBenchmarkJob(
     workspaceId: string,
@@ -180,16 +177,9 @@ export class EdgeGateClient {
       roles?: string[];
     }
   ): Promise<LLMCompileJob> {
-    return this.request<LLMCompileJob>(
-      "POST",
-      `/v1/workspaces/${workspaceId}/llm-compile`,
-      body
-    );
+    return this.request<LLMCompileJob>("POST", `/v1/workspaces/${workspaceId}/llm-compile`, body);
   }
-  async getLLMCompileJob(
-    workspaceId: string,
-    compileJobId: string
-  ): Promise<LLMCompileJob> {
+  async getLLMCompileJob(workspaceId: string, compileJobId: string): Promise<LLMCompileJob> {
     return this.request<LLMCompileJob>(
       "GET",
       `/v1/workspaces/${workspaceId}/llm-compile/${compileJobId}`
@@ -253,10 +243,7 @@ export class EdgeGateClient {
     );
   }
   async listRuns(workspaceId: string, limit = 20): Promise<RunSummary[]> {
-    return this.request<RunSummary[]>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/runs?limit=${limit}`
-    );
+    return this.request<RunSummary[]>("GET", `/v1/workspaces/${workspaceId}/runs?limit=${limit}`);
   }
   async listRunsByPipeline(
     workspaceId: string,
@@ -269,10 +256,7 @@ export class EdgeGateClient {
     );
   }
   async getRunDiff(workspaceId: string, runId: string): Promise<RunComparison> {
-    return this.request<RunComparison>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/runs/${runId}/diff`
-    );
+    return this.request<RunComparison>("GET", `/v1/workspaces/${workspaceId}/runs/${runId}/diff`);
   }
   async getRunBundle(workspaceId: string, runId: string): Promise<RunBundle> {
     return this.request<RunBundle>("GET", `/v1/workspaces/${workspaceId}/runs/${runId}/bundle`);
@@ -319,36 +303,25 @@ export class EdgeGateClient {
       { token }
     );
   }
-  async getHuggingFaceIntegration(
-    workspaceId: string
-  ): Promise<HuggingFaceIntegrationStatus> {
+  async getHuggingFaceIntegration(workspaceId: string): Promise<HuggingFaceIntegrationStatus> {
     return this.request<HuggingFaceIntegrationStatus>(
       "GET",
       `/v1/workspaces/${workspaceId}/integrations/huggingface`
     );
   }
   async deleteHuggingFaceIntegration(workspaceId: string): Promise<void> {
-    await this.request<void>(
-      "DELETE",
-      `/v1/workspaces/${workspaceId}/integrations/huggingface`
-    );
+    await this.request<void>("DELETE", `/v1/workspaces/${workspaceId}/integrations/huggingface`);
   }
 
   // Qualcomm AI Hub integration ─────────────────────────────────────────
-  async connectQaihubIntegration(
-    workspaceId: string,
-    token: string
-  ): Promise<QaihubIntegration> {
+  async connectQaihubIntegration(workspaceId: string, token: string): Promise<QaihubIntegration> {
     return this.request<QaihubIntegration>(
       "POST",
       `/v1/workspaces/${workspaceId}/integrations/qaihub`,
       { token }
     );
   }
-  async rotateQaihubIntegration(
-    workspaceId: string,
-    token: string
-  ): Promise<QaihubIntegration> {
+  async rotateQaihubIntegration(workspaceId: string, token: string): Promise<QaihubIntegration> {
     return this.request<QaihubIntegration>(
       "PUT",
       `/v1/workspaces/${workspaceId}/integrations/qaihub/rotate`,
@@ -362,10 +335,7 @@ export class EdgeGateClient {
     );
   }
   async deleteQaihubIntegration(workspaceId: string): Promise<void> {
-    await this.request<void>(
-      "DELETE",
-      `/v1/workspaces/${workspaceId}/integrations/qaihub`
-    );
+    await this.request<void>("DELETE", `/v1/workspaces/${workspaceId}/integrations/qaihub`);
   }
 
   // Workspace CRUD ─────────────────────────────────────────────────────
@@ -375,10 +345,7 @@ export class EdgeGateClient {
 
   // API keys ───────────────────────────────────────────────────────────
   async listApiKeys(workspaceId: string): Promise<APIKeyListItem[]> {
-    return this.request<APIKeyListItem[]>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/api-keys`
-    );
+    return this.request<APIKeyListItem[]>("GET", `/v1/workspaces/${workspaceId}/api-keys`);
   }
   async createApiKey(
     workspaceId: string,
@@ -391,52 +358,32 @@ export class EdgeGateClient {
     );
   }
   async revokeApiKey(workspaceId: string, keyId: string): Promise<void> {
-    await this.request<void>(
-      "DELETE",
-      `/v1/workspaces/${workspaceId}/api-keys/${keyId}`
-    );
+    await this.request<void>("DELETE", `/v1/workspaces/${workspaceId}/api-keys/${keyId}`);
   }
 
   // Members ────────────────────────────────────────────────────────────
   async listMembers(workspaceId: string): Promise<Member[]> {
-    return this.request<Member[]>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/members`
-    );
+    return this.request<Member[]>("GET", `/v1/workspaces/${workspaceId}/members`);
   }
   async addMember(
     workspaceId: string,
     body: { user_email: string; role: WorkspaceRole }
   ): Promise<Member> {
-    return this.request<Member>(
-      "POST",
-      `/v1/workspaces/${workspaceId}/members`,
-      body
-    );
+    return this.request<Member>("POST", `/v1/workspaces/${workspaceId}/members`, body);
   }
   async updateMemberRole(
     workspaceId: string,
     userId: string,
     role: WorkspaceRole
   ): Promise<Member> {
-    return this.request<Member>(
-      "PUT",
-      `/v1/workspaces/${workspaceId}/members/${userId}`,
-      { role }
-    );
+    return this.request<Member>("PUT", `/v1/workspaces/${workspaceId}/members/${userId}`, { role });
   }
   async removeMember(workspaceId: string, userId: string): Promise<void> {
-    await this.request<void>(
-      "DELETE",
-      `/v1/workspaces/${workspaceId}/members/${userId}`
-    );
+    await this.request<void>("DELETE", `/v1/workspaces/${workspaceId}/members/${userId}`);
   }
 
   async listPromptPacks(workspaceId: string): Promise<PromptPackSummary[]> {
-    return this.request<PromptPackSummary[]>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/promptpacks`
-    );
+    return this.request<PromptPackSummary[]>("GET", `/v1/workspaces/${workspaceId}/promptpacks`);
   }
   async createPromptPack(
     workspaceId: string,
@@ -467,17 +414,10 @@ export class EdgeGateClient {
     workspaceId: string,
     body: { name: string; clone_from?: string; cases?: EvalCase[] }
   ): Promise<EvalSetVersion> {
-    return this.request<EvalSetVersion>(
-      "POST",
-      `/v1/workspaces/${workspaceId}/eval-sets`,
-      body
-    );
+    return this.request<EvalSetVersion>("POST", `/v1/workspaces/${workspaceId}/eval-sets`, body);
   }
   async listEvalSets(workspaceId: string): Promise<EvalSetSummary[]> {
-    return this.request<EvalSetSummary[]>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/eval-sets`
-    );
+    return this.request<EvalSetSummary[]>("GET", `/v1/workspaces/${workspaceId}/eval-sets`);
   }
   async updateEvalSet(
     workspaceId: string,
@@ -534,40 +474,24 @@ export class EdgeGateClient {
   }
 
   // Compile-as-a-feature (genie compile / BG run) ───────────────────────
-  async submitGenieCompile(
-    workspaceId: string,
-    body: GenieCompileBody
-  ): Promise<GenieCompileJob> {
+  async submitGenieCompile(workspaceId: string, body: GenieCompileBody): Promise<GenieCompileJob> {
     return this.request<GenieCompileJob>(
       "POST",
       `/v1/workspaces/${workspaceId}/genie-compile`,
       body
     );
   }
-  async getGenieCompileStatus(
-    workspaceId: string,
-    jobId: string
-  ): Promise<GenieCompileStatus> {
+  async getGenieCompileStatus(workspaceId: string, jobId: string): Promise<GenieCompileStatus> {
     return this.request<GenieCompileStatus>(
       "GET",
       `/v1/workspaces/${workspaceId}/genie-compile/${jobId}`
     );
   }
-  async createBgRun(
-    workspaceId: string,
-    body: BgRunCreateBody
-  ): Promise<BgRunResponse> {
-    return this.request<BgRunResponse>(
-      "POST",
-      `/v1/workspaces/${workspaceId}/bg-runs`,
-      body
-    );
+  async createBgRun(workspaceId: string, body: BgRunCreateBody): Promise<BgRunResponse> {
+    return this.request<BgRunResponse>("POST", `/v1/workspaces/${workspaceId}/bg-runs`, body);
   }
 
-  async cancelRun(
-    workspaceId: string,
-    runId: string
-  ): Promise<{ run_id: string; status: string }> {
+  async cancelRun(workspaceId: string, runId: string): Promise<{ run_id: string; status: string }> {
     return this.request<{ run_id: string; status: string }>(
       "POST",
       `/v1/workspaces/${workspaceId}/runs/${runId}/cancel`
@@ -591,11 +515,7 @@ export class EdgeGateClient {
       kms_key_id?: string;
     }
   ): Promise<ByoGrant> {
-    return this.request<ByoGrant>(
-      "POST",
-      `/v1/workspaces/${workspaceId}/byo-storage/grants`,
-      body
-    );
+    return this.request<ByoGrant>("POST", `/v1/workspaces/${workspaceId}/byo-storage/grants`, body);
   }
   /**
    * Phase-1 of the two-phase wizard: register the grant WITHOUT a role_arn.
@@ -608,21 +528,14 @@ export class EdgeGateClient {
     workspaceId: string,
     body: { bucket: string; region: string; kms_key_id?: string }
   ): Promise<ByoGrant> {
-    return this.request<ByoGrant>(
-      "POST",
-      `/v1/workspaces/${workspaceId}/byo-storage/grants`,
-      body
-    );
+    return this.request<ByoGrant>("POST", `/v1/workspaces/${workspaceId}/byo-storage/grants`, body);
   }
   /**
    * Phase-2 of the two-phase wizard: hand a Role ARN to a pending_role grant.
    * Backend runs the readiness probe and either flips status to 'active' or
    * 'failed' with last_verify_error populated.
    */
-  async attachByoRole(
-    workspaceId: string,
-    roleArn: string
-  ): Promise<ByoGrant> {
+  async attachByoRole(workspaceId: string, roleArn: string): Promise<ByoGrant> {
     return this.request<ByoGrant>(
       "POST",
       `/v1/workspaces/${workspaceId}/byo-storage/grants/attach-role`,
@@ -636,10 +549,7 @@ export class EdgeGateClient {
     );
   }
   async getByoGrant(workspaceId: string): Promise<ByoGrant> {
-    return this.request<ByoGrant>(
-      "GET",
-      `/v1/workspaces/${workspaceId}/byo-storage/grants`
-    );
+    return this.request<ByoGrant>("GET", `/v1/workspaces/${workspaceId}/byo-storage/grants`);
   }
   async verifyByoGrant(workspaceId: string): Promise<ByoGrant> {
     return this.request<ByoGrant>(
@@ -648,10 +558,7 @@ export class EdgeGateClient {
     );
   }
   async deleteByoGrant(workspaceId: string): Promise<void> {
-    await this.request<void>(
-      "DELETE",
-      `/v1/workspaces/${workspaceId}/byo-storage/grants`
-    );
+    await this.request<void>("DELETE", `/v1/workspaces/${workspaceId}/byo-storage/grants`);
   }
   async registerByoArtifact(
     workspaceId: string,
@@ -729,7 +636,11 @@ export class EdgeGateClient {
 }
 
 function safeJson(text: string): unknown {
-  try { return JSON.parse(text); } catch { return null; }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));

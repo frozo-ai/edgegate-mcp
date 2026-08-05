@@ -13,16 +13,11 @@ export const exportFieldRecorderReportInputSchema = z
     workspace_id: z.string().uuid(),
     from: z.string().describe("Start of the reporting period (ISO 8601, e.g. 2026-06-01)."),
     to: z.string().describe("End of the reporting period (ISO 8601, e.g. 2026-07-01)."),
-    device_id: z
-      .string()
-      .optional()
-      .describe("Optional — restrict the report to a single device."),
+    device_id: z.string().optional().describe("Optional — restrict the report to a single device."),
   })
   .strict();
 
-export type ExportFieldRecorderReportInput = z.infer<
-  typeof exportFieldRecorderReportInputSchema
->;
+export type ExportFieldRecorderReportInput = z.infer<typeof exportFieldRecorderReportInputSchema>;
 
 interface A12Clause {
   requirement?: string;

@@ -10,10 +10,7 @@ import type { ToolResult } from "./setup_workspace.js";
 export const triggerRecorderReplayInputSchema = z
   .object({
     workspace_id: z.string().uuid(),
-    device_id: z
-      .string()
-      .optional()
-      .describe("Optional — only replay events from this device."),
+    device_id: z.string().optional().describe("Optional — only replay events from this device."),
     limit: z
       .number()
       .int()
@@ -23,9 +20,7 @@ export const triggerRecorderReplayInputSchema = z
   })
   .strict();
 
-export type TriggerRecorderReplayInput = z.infer<
-  typeof triggerRecorderReplayInputSchema
->;
+export type TriggerRecorderReplayInput = z.infer<typeof triggerRecorderReplayInputSchema>;
 
 interface ReplayResponse {
   queued?: number;
