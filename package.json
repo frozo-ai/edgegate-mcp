@@ -1,8 +1,38 @@
 {
   "name": "edgegate-mcp",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "MCP server for EdgeGate — set up edge-AI regression gates from Claude Code, Cursor, or Claude Desktop.",
+  "mcpName": "io.github.frozo-ai/edgegate-mcp",
   "license": "MIT",
+  "author": "Frozo Software Pvt Ltd <ashish.dhiman@frozo.ai> (https://edgegate.frozo.ai)",
+  "homepage": "https://edgegate.frozo.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frozo-ai/edgegate-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/frozo-ai/edgegate-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "mcp-server",
+    "claude",
+    "claude-code",
+    "cursor",
+    "edge-ai",
+    "edge-ml",
+    "mlops",
+    "qualcomm",
+    "snapdragon",
+    "npu",
+    "jetson",
+    "on-device-ai",
+    "benchmarking",
+    "regression-testing",
+    "ci",
+    "llm-evaluation"
+  ],
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -17,6 +47,7 @@
     "bin/",
     "skills/",
     "plugin.json",
+    "server.json",
     "README.md",
     "LICENSE"
   ],
@@ -27,7 +58,8 @@
     "test:watch": "vitest",
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts'",
-    "prepublishOnly": "npm run build && npm test && npm run lint"
+    "docs:tools": "node scripts/gen-tool-table.mjs",
+    "prepublishOnly": "npm run build && npm test && npm run lint && npm run docs:tools"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

@@ -4,7 +4,7 @@ MCP server for [EdgeGate](https://edgegate.frozo.ai) — set up edge-AI regressi
 
 ## What does it do?
 
-EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 30+ MCP tools, plus bundled skills, so you can drive the whole flow from a prompt:
+EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 58 MCP tools, plus bundled skills, so you can drive the whole flow from a prompt:
 
 ```
 > Use the edgegate MCP to set up a CI gate for my MobileNet ONNX model.
@@ -56,42 +56,74 @@ Same shape as Cursor.
 
 ## Tools
 
-See [docs/tools.md](./docs/tools.md) for the full tool reference. Quick list:
+See [docs/tools.md](./docs/tools.md) for input schemas and examples.
+
+<!-- BEGIN GENERATED TOOL TABLE -->
+
+EdgeGate exposes **58 MCP tools**. This table is generated from `src/server.ts` — run `npm run docs:tools` after adding a tool.
 
 | Tool | Purpose |
 |---|---|
-| `edgegate_setup_workspace` | Pick / confirm the active workspace |
-| `edgegate_create_pipeline` | Define a new regression pipeline |
-| `edgegate_run_gate` | Trigger a run |
-| `edgegate_check_status` | Poll a run for status + metrics |
-| `edgegate_get_report` | List recent runs |
-| `edgegate_get_audit_report` | Fetch the signed audit PDF |
-| `edgegate_setup_github_action` | Generate the GitHub Actions workflow + secret commands |
-| `edgegate_compare_runs` | Diff two runs — gate flips, metric deltas, per-device breakdown, REGRESSION / IMPROVEMENT / NEUTRAL verdict |
-| `edgegate_export_run_report` | Save a complete run report as a markdown file to disk (returns the file path + preview) |
-| `edgegate_import_huggingface_model` | Import a HuggingFace ONNX model — returns artifact_id ready for `edgegate_create_pipeline`. Uses the workspace's personal HF token when connected; otherwise anonymous |
-| `edgegate_connect_huggingface` | Store a personal HuggingFace token in the workspace so imports can read private / gated / Qualcomm-org repos. Validated against HF whoami before encryption |
-| `edgegate_get_huggingface_integration` | Show whether a HF token is currently connected (no plaintext) |
-| `edgegate_disconnect_huggingface` | Delete the HF integration; future imports fall back to anonymous access |
-| `edgegate_connect_qaihub` | Connect / rotate a Qualcomm AI Hub token (encrypted at rest, never returned in plaintext) |
-| `edgegate_get_qaihub_integration` | Show the connection status of the workspace's AI Hub token |
-| `edgegate_disconnect_qaihub` | Permanently delete the AI Hub integration |
-| `edgegate_create_workspace` | Create a new workspace (caller becomes owner) |
-| `edgegate_list_api_keys` | List API keys in the workspace (no plaintext) |
-| `edgegate_create_api_key` | Mint a new API key — plaintext returned exactly once |
-| `edgegate_revoke_api_key` | Revoke an API key by id (audit row preserved) |
-| `edgegate_list_members` | List members + roles |
-| `edgegate_invite_member` | Add an existing EdgeGate user to the workspace at a given role |
-| `edgegate_change_member_role` | Change a member's role (cannot downgrade the last owner) |
-| `edgegate_remove_member` | Remove a member (their pipelines/runs are preserved) |
-| `edgegate_list_promptpacks` | List all promptpacks in a workspace (id, version, case count, published status) |
-| `edgegate_create_promptpack` | Create a new promptpack with test cases (prompts, expected outputs, per-case overrides) |
-| `edgegate_publish_promptpack` | Publish a promptpack version so it is usable in pipelines (completes the create → publish → use lifecycle) |
-| `edgegate_register_byo_bucket` | **Enterprise.** Register the workspace's own S3 bucket + IAM role as a BYO storage grant. Returns the External ID to paste into the role's trust policy |
-| `edgegate_check_byo_bucket` | **Enterprise.** Re-run the AssumeRole + HeadObject readiness probe; renders the typed `BYO_*` error code with a fix checklist |
-| `edgegate_register_byo_artifact` | **Enterprise.** Register an existing `s3://<bucket>/<key>` URI as an EdgeGate Artifact (no bytes uploaded — HeadObject only). Returns an `artifact_id` ready for `edgegate_create_pipeline` |
-| `edgegate_disconnect_byo_bucket` | **Enterprise.** Delete the BYO grant. Refuses (409) if artifacts still reference it |
-| `edgegate_get_byo_audit` | **Enterprise.** Paginated append-only audit log of every AssumeRole / HeadObject / GetObject / KMS Decrypt call. `aws_request_id` joins to your own CloudTrail |
+| `edgegate_setup_workspace` | Confirm or list EdgeGate workspaces visible to the API key. Run this first in a fresh conversation to lock in which workspace_id the other tools should use. |
+| `edgegate_create_pipeline` | Create a new EdgeGate regression pipeline. Define which model(s), which device(s), and which gates (e.g. inference_time_ms ≤ 10) the pipeline will enforce. For LLMs: set llm_compile_source on a model instead of artifact_id. EdgeGate will compile + link via AI Hub on first run; subsequent runs reuse the cached composite. ttft_ms + tps gates work; both are derived from per-component profile (prompt-role inference_time → TTFT; 1000/token-role inference_time → TPS). Each LLM gate run = 3 AI Hub profile jobs (one per component) ≈ 3× CV cost. |
+| `edgegate_run_gate` | Trigger an EdgeGate run against a pipeline. Returns a run_id you can poll with edgegate_check_status. |
+| `edgegate_check_status` | Get the current status of an EdgeGate run, including per-device metrics and which gates passed or failed. |
+| `edgegate_get_report` | List recent EdgeGate runs in a workspace with status, duration, and trigger. |
+| `edgegate_get_audit_report` | Get the signed audit report PDF URL for a completed EdgeGate run. Used for compliance records. |
+| `edgegate_setup_github_action` | Generate the GitHub Actions workflow YAML + gh secret commands so every PR runs EdgeGate as a CI gate. |
+| `edgegate_compare_runs` | Diff two EdgeGate runs in the same pipeline — metrics delta, gate flips (✓→✗ regressions and ✗→✓ recoveries), per-device breakdown, and an overall verdict (REGRESSION / IMPROVEMENT / NEUTRAL / NO BASELINE). When baseline_run_id is omitted, auto-selects the most recent PASSED run from the same pipeline as the baseline. |
+| `edgegate_export_run_report` | Download a human-readable markdown report for an EdgeGate run and save it to disk. Returns the absolute file path plus a preview of the first 30 lines. Optionally includes a run-vs-baseline diff section (include_diff=true). |
+| `edgegate_import_huggingface_model` | Import a public Hugging Face model that contains a pre-built ONNX file. EdgeGate downloads the file and registers it as an Artifact. Returns the artifact_id you can pass directly to edgegate_create_pipeline. Polls until the import completes by default (poll_for_completion=true); set to false to return immediately with the job id. |
+| `edgegate_predict_npu_coverage` | Predict which ONNX ops will run on the Qualcomm Hexagon NPU vs fall back to CPU, BEFORE spending any AI Hub credits. Returns a compute-weighted NPU coverage % (the latency-honest number), op-count coverage, risk band, per-op CPU fallbacks, and fix recommendations. Heuristic — the real device run remains authoritative. |
+| `edgegate_list_promptpacks` | List all promptpacks in an EdgeGate workspace. Returns a markdown table with promptpack_id, version, case count, published status, and creation date. Use include_unpublished=false to hide draft packs. |
+| `edgegate_create_promptpack` | Create a new promptpack in an EdgeGate workspace. A promptpack defines the test cases (prompts, expected outputs, per-case overrides) that regression pipelines evaluate. Requires admin role on the workspace. Packs are immutable after creation — bump the version to update. |
+| `edgegate_publish_promptpack` | Publish a promptpack version in an EdgeGate workspace so it can be referenced in pipelines. Newly created packs start as unpublished — call this after edgegate_create_promptpack to complete the create → publish → use lifecycle. Requires admin role on the workspace. The operation is idempotent. |
+| `edgegate_connect_huggingface` | Store a personal HuggingFace access token for this workspace so the import flow can read private / gated / Qualcomm-org repos (most qualcomm/*, Intel/*, and many Xenova/* repos 401 the anonymous endpoint). The token is validated against HF whoami before encryption and is never echoed in plaintext. If an integration already exists this tool rotates the token. Requires admin role. |
+| `edgegate_get_huggingface_integration` | Show whether a personal HuggingFace token is connected to this workspace (and whether it is currently active or disabled). Does not return the token itself. |
+| `edgegate_disconnect_huggingface` | Permanently delete the workspace's HuggingFace integration. Future HF imports fall back to anonymous access. Requires owner role. |
+| `edgegate_connect_qaihub` | Store a Qualcomm AI Hub API token for this workspace so EdgeGate can submit compile + profile jobs on real Snapdragon devices. The token is encrypted at rest and is never returned in plaintext after the initial connect. If an integration already exists this tool transparently rotates the token. Requires admin role. |
+| `edgegate_get_qaihub_integration` | Show whether a Qualcomm AI Hub token is connected to this workspace and whether it is currently active. Does not return the token itself. |
+| `edgegate_disconnect_qaihub` | Permanently delete the workspace's Qualcomm AI Hub integration. Any new EdgeGate runs in this workspace will then fail with NO_AIHUB_TOKEN until a fresh token is connected. Requires owner role. |
+| `edgegate_create_workspace` | Create a new EdgeGate workspace. The caller automatically becomes the owner. Subject to plan-tier workspace limits. After creation, connect Qualcomm AI Hub and define pipelines as usual. |
+| `edgegate_list_api_keys` | List all API keys in this workspace (id, name, prefix...suffix, status, last_used). Plaintext is never returned. Requires owner role. |
+| `edgegate_create_api_key` | Create a new API key for this workspace. The plaintext token is returned EXACTLY ONCE in the response — copy it to your CI secrets or local env immediately. Requires Pro tier or above. Requires owner role. |
+| `edgegate_revoke_api_key` | Revoke an API key by id. The key is immediately rejected for all subsequent requests; the row is preserved (with revoked_at set) so the audit trail survives. Destructive. Requires owner role. |
+| `edgegate_list_members` | List all members of this workspace with their email + role. Requires at least viewer role. |
+| `edgegate_list_devices` | List every Qualcomm AI Hub device EdgeGate can target (Snapdragon phones, QRD/CRD reference platforms, IoT Dragonwing, automotive, XR). Returns a markdown table grouped by category. Use the `id` column verbatim when building a `create_pipeline` device matrix. No workspace_id needed — the catalog is global. |
+| `edgegate_list_device_targets` | List the customer's OWN connected devices (Jetson, Snapdragon hosts, gateways) with live/offline status computed from each device's heartbeat (30s beat, 90s window). This is the workspace fleet connected via `edgegate-runner agent` — NOT the global AI Hub catalog (use edgegate_list_devices for that). If empty, the response includes copy-paste connect instructions for the customer. |
+| `edgegate_run_device_benchmark` | Dispatch an ONNX benchmark to one of the customer's connected devices (Jetson, Snapdragon host, gateway) by name/id. The on-device agent picks it up within ~30s and reports latency/memory results. Multi-silicon: works for any vendor the customer has connected. Requires admin role. |
+| `edgegate_invite_member` | Add an existing EdgeGate user to this workspace by email at the given role (owner / admin / viewer). v1 only attaches existing users — does not send invitation emails to external addresses. Requires admin role; only owners can add other owners. |
+| `edgegate_change_member_role` | Change a member's role in this workspace. Cannot downgrade the last owner — promote another member to owner first. Requires owner role. |
+| `edgegate_remove_member` | Remove a member from this workspace. The user loses access immediately; their pipelines and runs are preserved. Cannot remove the last owner. Destructive. Requires owner role. |
+| `edgegate_setup_byo_storage` | Enterprise only. Zero-friction BYO storage setup — creates a pending grant with EdgeGate (returns the External ID) and returns the exact AWS CLI commands the agent should run to create the IAM role in the customer's AWS account. Pair with edgegate_attach_byo_role to finalize. Prefer this over edgegate_register_byo_bucket for new setups — the agent doesn't have to figure out the trust policy or guess at role names. Requires owner role. 402 from non-Enterprise workspaces; if a non-pending grant exists, instructs the agent to disconnect first. |
+| `edgegate_attach_byo_role` | Phase 2 of edgegate_setup_byo_storage. Hands the freshly-created Role ARN back to EdgeGate, which runs sts:AssumeRole + a deny-by-default HEAD probe to verify the trust + permission policies are correct. Flips the grant to 'active' on success, or returns a typed BYO_* error with a checklist of common misconfigurations on failure. Re-callable with the same role_arn after fixing IAM. |
+| `edgegate_register_byo_bucket` | Enterprise only. **Use edgegate_setup_byo_storage instead for new setups** — this tool only works if you already have an IAM role and just want to register its ARN. Registers the workspace's customer-owned S3 bucket + IAM role as a BYO storage grant. EdgeGate's workers will AssumeRole into your AWS account to read model bytes — they never leave your account. Returns the External ID you must add to your role's trust policy. Requires owner role. 402 from non-Enterprise workspaces; 409 if a grant already exists. |
+| `edgegate_check_byo_bucket` | Re-run the AssumeRole + HeadObject readiness probe against the workspace's BYO grant. Returns the updated grant status with the typed BYO_* error code if it failed, plus a checklist of common IAM / bucket / KMS misconfigurations to inspect. Requires admin role. |
+| `edgegate_register_byo_artifact` | Register an existing S3 URI in your registered bucket as an EdgeGate Artifact. EdgeGate HeadObjects the URI to confirm the key exists + capture size/etag — bytes are NOT uploaded through EdgeGate. Returns an artifact_id you can pass directly to edgegate_create_pipeline / edgegate_run_gate. Requires admin role. Pre-conditions: Enterprise plan + active BYO grant + bucket matches the grant. |
+| `edgegate_disconnect_byo_bucket` | Delete the workspace's BYO storage grant. EdgeGate stops attempting to read from your bucket. Refuses (409) if artifacts still reference it — surface lists the safe paths forward (rotate External ID via dashboard, or drop the artifacts first). Destructive. Requires owner role. |
+| `edgegate_llm_compile` | Submit a multi-component LLM compile + link job via Qualcomm AI Hub. Returns a compile_job_id; poll with edgegate_check_llm_compile_status. Spend is gated by the workspace's monthly LLM compile cap (default 100/mo Pro tier). Each compile produces a composite QNN_DLC linked model + 3 component artifacts (prompt / token / kv_cache). Compile target_runtime is QNN_DLC under the hood despite the genie label — the label is for downstream profile dispatch hints only. |
+| `edgegate_check_llm_compile_status` | Poll an LLM compile job. Returns status (queued\|running\|completed\|failed), composite_artifact_id when complete, error_detail when failed, and progress.compile_jobs_done / total. |
+| `edgegate_get_byo_audit` | Fetch the workspace's append-only BYO storage audit log (every AssumeRole, HeadObject, GetObject, KMS Decrypt). Supports filters by artifact_id, run_id, since timestamp, plus cursor pagination. Each row's aws_request_id is the join key for cross-referencing against your own CloudTrail. Requires admin role. |
+| `edgegate_list_eval_packs` | List the bundled behavioral eval-set starter packs a customer can clone from. Returns each pack's id, name, case count, and balance (must_refuse / task counts). Clone one into a new eval set via edgegate_create_eval_set(clone_from=<id>). No workspace_id needed — the pack library is global. |
+| `edgegate_create_eval_set` | Create a new behavioral eval set with its first draft version. Seed it from a bundled pack (clone_from), with explicit cases, both, or neither (empty draft). Each case has six fields: case_id, prompt, category (jailbreak\|forbidden_action\|task\|format), forbidden_actions, must_refuse, expected_task_answer. Drafts are NOT validated here — only edgegate_publish_eval_set freezes + gates. Requires workspace write access. |
+| `edgegate_list_eval_sets` | List the workspace's behavioral eval sets — eval_set_id, name, latest version, and creation date. Use the eval_set_id with the update / publish / new-version tools. |
+| `edgegate_update_eval_set` | Replace ALL cases of a DRAFT eval-set version (full replacement list, not a patch). Published versions are immutable — a 409 here means you must fork a fresh draft with edgegate_new_eval_set_version first. Still leaves the version a draft; publish separately. Requires workspace write access. |
+| `edgegate_publish_eval_set` | Validate and freeze a draft eval-set version into an immutable, signed, hash-anchored version. On success returns eval_set_sha256 + artifact_id (feed both into a 3b Behavioral-Gate run). On validation failure returns the balance/structural violations and the version stays a draft (floor: ≥5 must_refuse-with-forbidden cases + ≥1 task case). Requires workspace write access. |
+| `edgegate_new_eval_set_version` | Fork a fresh draft (version+1) from a PUBLISHED version, seeded with its cases — the edit-after-publish path. Edit the new draft with edgegate_update_eval_set, then re-publish. The original published version (and any references / runs bound to its sha) is untouched. Requires workspace write access. |
+| `edgegate_capture_reference` | Trigger a reference-oracle capture — the known-good baseline the Behavioral Gate diffs the on-device quantized model against. Specify EXACTLY one flavor: hf_repo (auto-FP16, EdgeGate runs the un-quantized same model) or reference_upload_artifact_id (golden, customer-supplied). Returns a job_id to poll. Requires workspace admin access. |
+| `edgegate_check_reference_capture_status` | Poll a reference-capture job. When status is done, returns reference_artifact_id — an ArtifactKind.REFERENCE artifact — to feed into edgegate_create_bg_run as the gate's trustworthy baseline. Requires workspace admin access. |
+| `edgegate_compile_genie` | Submit a 3-lane genie compile for the Behavioral Gate's self-hosted runner. Specify EXACTLY one lane selector: hf_repo (Lane A — EdgeGate compiles a HuggingFace repo), onnx_artifact_ids (Lane B — genie-ready multi-part ONNX, compile-and-link), or bundle_artifact_id (Lane C — an already-precompiled bundle). Returns a job_id to poll. Requires workspace admin access. |
+| `edgegate_check_genie_compile_status` | Poll a genie-compile job. When status is done, returns bundle_artifact_id — the compiled genie bundle to feed into edgegate_create_bg_run. Requires workspace admin access. |
+| `edgegate_create_bg_run` | Wire a compiled genie bundle + published eval set + reference oracle into a behavioral-gate Run — populates Run.runner_config_json so the self-hosted runner can execute the gate on-device. Errors with a mismatch hint when the reference was captured against a different eval-set version (eval_set_sha256 differs). Requires workspace admin access. |
+| `edgegate_cancel_run` | Cancel a non-terminal run, freeing the workspace's single active-run slot. Useful for a behavioral-gate run left queued waiting for a device that never reports back (it would otherwise block new runs). 409 if the run is already terminal. |
+| `edgegate_rerun_bg` | Re-run an existing behavioral-gate run: clones its already-validated config (same bundle + eval set + reference + system prompt + device) into a fresh queued run — no need to re-supply artifact ids. 409 if the workspace already has an active run (cancel it first). |
+| `edgegate_setup_bg_github_action` | Generate the Behavioral-Gate GitHub Actions setup — the self-hosted-runner prerequisites, the workflow YAML (using the edgegate-bg composite action), and the gh secret commands. Unlike the standard run gate, BG runs the model on a real device, so it needs a self-hosted runner with the device attached. |
+| `edgegate_export_compliance_report` | Export the compliance-preset report for a run (e.g. ISO 26262 verification evidence) — a re-frame of the run's already-signed evidence against the standard's clauses (config identification, verification, change mgmt, tool classification, integrity). Verification evidence, NOT a compliance certification. The formatted assessor PDF is on the dashboard run page. |
+| `edgegate_export_field_recorder_report` | Export the Field Recorder EU AI Act Article 12 record-keeping report for a date range — the signed, hash-chained evidence of what deployed models did on-device (clause 12(1)/12(2)(a)/12(2)(b)/integrity mapping, event summary, Ed25519 signature). Verification evidence, NOT a compliance certification. The formatted assessor PDF is on the Field Recorder dashboard page. |
+| `edgegate_recorder_status` | Field Recorder status for a workspace: recorded-event counts, replay/divergence breakdown (passed/diverged/no_reference), hash-chain integrity (verified, gaps, signing keys), and the devices reporting in. Read-only. |
+| `edgegate_trigger_replay` | Replay pending recorded events against their certified reference (a PASSED gate run for the same model) plus the input-matched baseline. Verdicts land asynchronously — poll edgegate_recorder_status. Events with no certified reference resolve to no_reference. |
+
+<!-- END GENERATED TOOL TABLE -->
 
 ## Skills
 
