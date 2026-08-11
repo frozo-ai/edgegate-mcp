@@ -28,10 +28,7 @@ export const createBgRunInputSchema = z
       .string()
       .uuid()
       .describe("Reference-oracle artifact id from edgegate_check_reference_capture_status."),
-    vendor: z
-      .string()
-      .optional()
-      .describe('Runner vendor. Defaults to "qualcomm".'),
+    vendor: z.string().optional().describe('Runner vendor. Defaults to "qualcomm".'),
     system_prompt: z
       .string()
       .optional()
@@ -132,14 +129,25 @@ export async function createBgRunHandler(
 
     const run = await client.createBgRun(input.workspace_id, body);
 
+    // Mirrors the backend's rule: an endpoint target runs hosted unless the
+    // caller explicitly opted into the runner.
+    const isHosted = Boolean(input.endpoint_id || input.http) && input.execution !== "runner";
+
     const text = [
       `Created a behavioral-gate run:`,
       ``,
       `- run_id: ${run.run_id}`,
       `- status: ${run.status}`,
       ``,
-      `The run's \`runner_config_json\` is now populated — point the self-hosted runner ` +
-        `at this run to execute the gate on-device.`,
+      // A hosted run is executed by EdgeGate's workers, and the backend now
+      // 409s a runner that tries to pull it — so telling the agent to point a
+      // runner at it would send it at an operation that is refused by design.
+      isHosted
+        ? `EdgeGate is executing this run against your endpoint — nothing to install. ` +
+          `Poll it with \`edgegate_check_status\`. The verdict is tagged API-verified, ` +
+          `not hardware-certified.`
+        : `The run's \`runner_config_json\` is now populated — point the self-hosted runner ` +
+          `at this run to execute the gate.`,
     ].join("\n");
 
     return { content: [{ type: "text", text }] };

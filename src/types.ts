@@ -241,12 +241,7 @@ export interface AuditReport {
 
 // ─── HuggingFace import types ─────────────────────────────────────────────
 
-export type HFImportStatus =
-  | "queued"
-  | "downloading"
-  | "uploading_to_hub"
-  | "done"
-  | "failed";
+export type HFImportStatus = "queued" | "downloading" | "uploading_to_hub" | "done" | "failed";
 
 /**
  * One entry in a multi-part HF import. F-T6.2 (commit 3636c20) added

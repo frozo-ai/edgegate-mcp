@@ -172,7 +172,10 @@ describe("capture_reference — http flavor", () => {
   });
 
   it("leaves the two original flavors working", () => {
-    const flavors = [{ hf_repo: "meta-llama/Llama-3.2-3B" }, { reference_upload_artifact_id: reference }];
+    const flavors = [
+      { hf_repo: "meta-llama/Llama-3.2-3B" },
+      { reference_upload_artifact_id: reference },
+    ];
     for (const flavor of flavors) {
       const parsed = captureReferenceInputSchema.safeParse({
         workspace_id: wsId,
