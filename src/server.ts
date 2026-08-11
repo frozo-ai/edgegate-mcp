@@ -101,6 +101,14 @@ import {
 } from "./tools/new_eval_set_version.js";
 import { captureReferenceHandler, captureReferenceInputSchema } from "./tools/capture_reference.js";
 import {
+  createWorkflowEndpointHandler,
+  createWorkflowEndpointInputSchema,
+  listWorkflowEndpointsHandler,
+  listWorkflowEndpointsInputSchema,
+  probeWorkflowEndpointHandler,
+  probeWorkflowEndpointInputSchema,
+} from "./tools/workflow_endpoints.js";
+import {
   checkReferenceCaptureStatusHandler,
   checkReferenceCaptureStatusInputSchema,
 } from "./tools/check_reference_capture_status.js";
@@ -576,6 +584,37 @@ const TOOLS = [
       "sha) is untouched. Requires workspace write access.",
     schema: newEvalSetVersionInputSchema,
     handler: newEvalSetVersionHandler,
+  },
+  {
+    name: "edgegate_list_workflow_endpoints",
+    description:
+      "List the workspace's saved API/workflow endpoints — the targets of an API gate (n8n, " +
+      "Zapier, Make, or any OpenAI-compatible API). Returns each endpoint_id to pass to " +
+      "edgegate_capture_reference and edgegate_create_bg_run. Credentials are never returned; " +
+      "only whether one is stored and its last 4 characters.",
+    schema: listWorkflowEndpointsInputSchema,
+    handler: listWorkflowEndpointsHandler,
+  },
+  {
+    name: "edgegate_create_workflow_endpoint",
+    description:
+      "Save an API/workflow endpoint so a behavioral gate can target it. This is the ONLY way " +
+      "to gate an authenticated endpoint: the credential is stored envelope-encrypted here and " +
+      "is never returned, whereas an inline `http` descriptor is rejected (422) if it carries " +
+      "one. Using a saved endpoint also lets EdgeGate refuse a run whose endpoint differs from " +
+      "the baseline's. Requires workspace admin access.",
+    schema: createWorkflowEndpointInputSchema,
+    handler: createWorkflowEndpointHandler,
+  },
+  {
+    name: "edgegate_probe_workflow_endpoint",
+    description:
+      "Send one test request to a saved endpoint and show the raw response beside the text " +
+      "EdgeGate extracted from it. Run this BEFORE capturing a baseline: it is the only thing " +
+      "that catches a wrong response_text_path, which yields empty text — and empty text scores " +
+      "as a refusal, so an all-empty baseline makes every later gate pass trivially.",
+    schema: probeWorkflowEndpointInputSchema,
+    handler: probeWorkflowEndpointHandler,
   },
   {
     name: "edgegate_capture_reference",

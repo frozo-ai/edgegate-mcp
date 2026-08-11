@@ -4,7 +4,7 @@ MCP server for [EdgeGate](https://edgegate.frozo.ai) — set up edge-AI regressi
 
 ## What does it do?
 
-EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 58 MCP tools, plus bundled skills, so you can drive the whole flow from a prompt:
+EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm AI Hub, then produces signed evidence bundles you can attach to CI gates. This npm package exposes EdgeGate's REST API as 61 MCP tools, plus bundled skills, so you can drive the whole flow from a prompt:
 
 ```
 > Use the edgegate MCP to set up a CI gate for my MobileNet ONNX model.
@@ -60,7 +60,7 @@ See [docs/tools.md](./docs/tools.md) for input schemas and examples.
 
 <!-- BEGIN GENERATED TOOL TABLE -->
 
-EdgeGate exposes **58 MCP tools**. This table is generated from `src/server.ts` — run `npm run docs:tools` after adding a tool.
+EdgeGate exposes **61 MCP tools**. This table is generated from `src/server.ts` — run `npm run docs:tools` after adding a tool.
 
 | Tool | Purpose |
 |---|---|
@@ -110,6 +110,9 @@ EdgeGate exposes **58 MCP tools**. This table is generated from `src/server.ts` 
 | `edgegate_update_eval_set` | Replace ALL cases of a DRAFT eval-set version (full replacement list, not a patch). Published versions are immutable — a 409 here means you must fork a fresh draft with edgegate_new_eval_set_version first. Still leaves the version a draft; publish separately. Requires workspace write access. |
 | `edgegate_publish_eval_set` | Validate and freeze a draft eval-set version into an immutable, signed, hash-anchored version. On success returns eval_set_sha256 + artifact_id (feed both into a 3b Behavioral-Gate run). On validation failure returns the balance/structural violations and the version stays a draft (floor: ≥5 must_refuse-with-forbidden cases + ≥1 task case). Requires workspace write access. |
 | `edgegate_new_eval_set_version` | Fork a fresh draft (version+1) from a PUBLISHED version, seeded with its cases — the edit-after-publish path. Edit the new draft with edgegate_update_eval_set, then re-publish. The original published version (and any references / runs bound to its sha) is untouched. Requires workspace write access. |
+| `edgegate_list_workflow_endpoints` | List the workspace's saved API/workflow endpoints — the targets of an API gate (n8n, Zapier, Make, or any OpenAI-compatible API). Returns each endpoint_id to pass to edgegate_capture_reference and edgegate_create_bg_run. Credentials are never returned; only whether one is stored and its last 4 characters. |
+| `edgegate_create_workflow_endpoint` | Save an API/workflow endpoint so a behavioral gate can target it. This is the ONLY way to gate an authenticated endpoint: the credential is stored envelope-encrypted here and is never returned, whereas an inline `http` descriptor is rejected (422) if it carries one. Using a saved endpoint also lets EdgeGate refuse a run whose endpoint differs from the baseline's. Requires workspace admin access. |
+| `edgegate_probe_workflow_endpoint` | Send one test request to a saved endpoint and show the raw response beside the text EdgeGate extracted from it. Run this BEFORE capturing a baseline: it is the only thing that catches a wrong response_text_path, which yields empty text — and empty text scores as a refusal, so an all-empty baseline makes every later gate pass trivially. |
 | `edgegate_capture_reference` | Trigger a reference-oracle capture — the known-good baseline the Behavioral Gate diffs against. Specify EXACTLY one flavor: hf_repo (auto-FP16, EdgeGate runs the un-quantized same model), reference_upload_artifact_id (golden, customer-supplied), or endpoint_id/http (an API or workflow endpoint — n8n, Zapier, Make, or any OpenAI-compatible API; EdgeGate calls it once per case, nothing to install). Returns a job_id to poll. Requires workspace admin access. |
 | `edgegate_check_reference_capture_status` | Poll a reference-capture job. When status is done, returns reference_artifact_id — an ArtifactKind.REFERENCE artifact — to feed into edgegate_create_bg_run as the gate's trustworthy baseline. Requires workspace admin access. |
 | `edgegate_compile_genie` | Submit a 3-lane genie compile for the Behavioral Gate's self-hosted runner. Specify EXACTLY one lane selector: hf_repo (Lane A — EdgeGate compiles a HuggingFace repo), onnx_artifact_ids (Lane B — genie-ready multi-part ONNX, compile-and-link), or bundle_artifact_id (Lane C — an already-precompiled bundle). Returns a job_id to poll. Requires workspace admin access. |

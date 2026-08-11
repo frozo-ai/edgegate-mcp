@@ -39,6 +39,9 @@ import type {
   Workspace,
   WorkflowTemplate,
   WorkspaceRole,
+  WorkflowEndpoint,
+  WorkflowEndpointCreateBody,
+  WorkflowEndpointProbe,
 } from "./types.js";
 
 export interface EdgeGateClientOptions {
@@ -489,6 +492,49 @@ export class EdgeGateClient {
   }
   async createBgRun(workspaceId: string, body: BgRunCreateBody): Promise<BgRunResponse> {
     return this.request<BgRunResponse>("POST", `/v1/workspaces/${workspaceId}/bg-runs`, body);
+  }
+
+  // ── Saved workflow endpoints (the target of an API/workflow gate) ────────
+  // Without these, `endpoint_id` is unreachable from MCP and an agent can only
+  // inline `http` — which cannot carry a credential (the backend 422s secret-
+  // like keys, because runner_config_json is viewer-readable). That made an
+  // authenticated endpoint ungateable through MCP entirely.
+
+  async listWorkflowEndpoints(workspaceId: string): Promise<WorkflowEndpoint[]> {
+    return this.request<WorkflowEndpoint[]>(
+      "GET",
+      `/v1/workspaces/${workspaceId}/workflow-endpoints`
+    );
+  }
+
+  async createWorkflowEndpoint(
+    workspaceId: string,
+    body: WorkflowEndpointCreateBody
+  ): Promise<WorkflowEndpoint> {
+    return this.request<WorkflowEndpoint>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/workflow-endpoints`,
+      body
+    );
+  }
+
+  async probeWorkflowEndpoint(
+    workspaceId: string,
+    endpointId: string,
+    body: { prompt?: string } = {}
+  ): Promise<WorkflowEndpointProbe> {
+    return this.request<WorkflowEndpointProbe>(
+      "POST",
+      `/v1/workspaces/${workspaceId}/workflow-endpoints/${endpointId}/probe`,
+      body
+    );
+  }
+
+  async deleteWorkflowEndpoint(workspaceId: string, endpointId: string): Promise<void> {
+    await this.request<void>(
+      "DELETE",
+      `/v1/workspaces/${workspaceId}/workflow-endpoints/${endpointId}`
+    );
   }
 
   async cancelRun(workspaceId: string, runId: string): Promise<{ run_id: string; status: string }> {

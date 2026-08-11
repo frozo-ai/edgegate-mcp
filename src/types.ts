@@ -707,3 +707,59 @@ export interface ArtifactResponse {
   created_at: string;
   expires_at: string | null;
 }
+
+// ─── Saved workflow endpoints (API/workflow gating target) ─────────────────
+
+/**
+ * Returned by GET/POST /v1/workspaces/{ws}/workflow-endpoints. Mirrors the
+ * backend `WorkflowEndpointResponse`.
+ *
+ * The credential is write-only by design: no read path returns it. Only
+ * `has_secret` and `secret_last4` are ever visible, which is what lets an
+ * endpoint be listed and reused without the secret leaving the server.
+ */
+export interface WorkflowEndpoint {
+  id: UUID;
+  name: string;
+  endpoint_url: string;
+  transport: string;
+  model?: string | null;
+  request_template?: Record<string, unknown> | null;
+  response_text_path?: string | null;
+  response_tools_path?: string | null;
+  has_secret: boolean;
+  secret_last4?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+/** Body for POST /v1/workspaces/{ws}/workflow-endpoints. */
+export interface WorkflowEndpointCreateBody {
+  name: string;
+  endpoint_url: string;
+  transport?: string;
+  model?: string;
+  request_template?: Record<string, unknown>;
+  response_text_path?: string;
+  response_tools_path?: string;
+  // Stored envelope-encrypted server-side. Unlike an inline `http` descriptor
+  // (where credentials are rejected with 422), a saved endpoint is the ONLY
+  // place a credential can live — which is why an authenticated endpoint needs
+  // this path rather than the inline one.
+  secret?: string;
+}
+
+/**
+ * Returned by POST .../workflow-endpoints/{id}/probe. `raw_response` is the
+ * endpoint's own body with the stored credential redacted — an echo-style
+ * endpoint reflects request headers, which would otherwise hand the secret back.
+ */
+export interface WorkflowEndpointProbe {
+  ok: boolean;
+  extracted_text?: string | null;
+  tool_calls: string[];
+  raw_response?: string | null;
+  error?: string | null;
+  hint?: string | null;
+  raw: Record<string, unknown>;
+}
