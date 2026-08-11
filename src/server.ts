@@ -581,9 +581,11 @@ const TOOLS = [
     name: "edgegate_capture_reference",
     description:
       "Trigger a reference-oracle capture — the known-good baseline the Behavioral Gate diffs " +
-      "the on-device quantized model against. Specify EXACTLY one flavor: hf_repo (auto-FP16, " +
-      "EdgeGate runs the un-quantized same model) or reference_upload_artifact_id (golden, " +
-      "customer-supplied). Returns a job_id to poll. Requires workspace admin access.",
+      "against. Specify EXACTLY one flavor: hf_repo (auto-FP16, EdgeGate runs the un-quantized " +
+      "same model), reference_upload_artifact_id (golden, customer-supplied), or " +
+      "endpoint_id/http (an API or workflow endpoint — n8n, Zapier, Make, or any " +
+      "OpenAI-compatible API; EdgeGate calls it once per case, nothing to install). " +
+      "Returns a job_id to poll. Requires workspace admin access.",
     schema: captureReferenceInputSchema,
     handler: captureReferenceHandler,
   },
@@ -619,11 +621,14 @@ const TOOLS = [
   {
     name: "edgegate_create_bg_run",
     description:
-      "Wire a compiled genie bundle + published eval set + reference oracle into a " +
-      "behavioral-gate Run — populates Run.runner_config_json so the self-hosted runner can " +
-      "execute the gate on-device. Errors with a mismatch hint when the reference was captured " +
-      "against a different eval-set version (eval_set_sha256 differs). Requires workspace admin " +
-      "access.",
+      "Wire what you are gating + a published eval set + a reference oracle into a " +
+      "behavioral-gate Run. Three targets: a compiled genie bundle (bundle_artifact_id, runs " +
+      "on-device via the self-hosted runner), an on-device LLM (geniex_model), or an API or " +
+      "workflow endpoint (endpoint_id/http — n8n, Zapier, Make, OpenAI-compatible; EdgeGate " +
+      "executes it by default, so nothing is installed, and results are tagged API-verified " +
+      "rather than hardware-certified). Errors with a mismatch hint when the reference was " +
+      "captured against a different eval-set version (eval_set_sha256 differs) or a different " +
+      "endpoint. Requires workspace admin access.",
     schema: createBgRunInputSchema,
     handler: createBgRunHandler,
   },

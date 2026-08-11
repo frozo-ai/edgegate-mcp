@@ -582,7 +582,8 @@ export interface EvalSetSummary {
  * Body for POST /v1/workspaces/{ws}/reference-captures. Mirrors the backend
  * `ReferenceCaptureRequest` model (edgegate/api/routes/reference_capture.py).
  * Exactly one flavor selector — `hf_repo` (auto-FP16) XOR
- * `reference_upload_artifact_id` (golden) — must be set; else 422.
+ * `reference_upload_artifact_id` (golden) XOR the http flavor (`endpoint_id`
+ * or inline `http`) — must be set; else 422.
  */
 export interface ReferenceCaptureBody {
   eval_set_artifact_id: UUID;
@@ -590,6 +591,11 @@ export interface ReferenceCaptureBody {
   decode_config?: Record<string, unknown>;
   hf_repo?: string;
   reference_upload_artifact_id?: UUID;
+  // http flavor: EdgeGate calls the endpoint once per case and stores the
+  // baseline server-side. This is what removes `pip install edgegate-runner`
+  // from the path to a first verdict for an API-backed workflow.
+  endpoint_id?: UUID;
+  http?: Record<string, unknown>;
 }
 
 /**
@@ -657,7 +663,9 @@ export interface GenieCompileStatus {
  * `Run.runner_config_json`).
  */
 export interface BgRunCreateBody {
-  bundle_artifact_id: UUID;
+  // Optional since the API path: an HTTP endpoint has no compiled bundle at
+  // all, and the backend declares `bundle_artifact_id: str | None`.
+  bundle_artifact_id?: UUID;
   eval_set_artifact_id: UUID;
   reference_artifact_id: UUID;
   vendor?: string;
@@ -666,6 +674,18 @@ export interface BgRunCreateBody {
   device_label?: string;
   // ISO 26262 traceability: gate/signal name -> { requirement_id, asil }.
   requirement_map?: Record<string, Record<string, string>>;
+  // GenieX on-device LLM: model name in the device's GenieX cache.
+  geniex_model?: string;
+  // API/workflow gating (vendor="http"). `endpoint_id` (a saved endpoint) and
+  // `http` (an inline descriptor) are mutually exclusive — the backend 422s if
+  // both are set, because two targets in one request is exactly the ambiguity
+  // the saved endpoint exists to remove.
+  endpoint_id?: UUID;
+  http?: Record<string, unknown>;
+  // "hosted" (EdgeGate's workers make the calls; the default for vendor="http")
+  // or "runner" (self-hosted, for endpoints EdgeGate cannot reach, or when raw
+  // output must not leave your network).
+  execution?: string;
 }
 
 /**

@@ -33,13 +33,37 @@ export const captureReferenceInputSchema = z
       .uuid()
       .optional()
       .describe("golden flavor: a customer-supplied reference upload artifact id."),
+    endpoint_id: z
+      .string()
+      .uuid()
+      .optional()
+      .describe(
+        "http flavor: a saved endpoint id from edgegate_list_workflow_endpoints. EdgeGate " +
+          "calls it once per case and stores the baseline — no CLI, nothing to install. " +
+          "Mutually exclusive with `http`."
+      ),
+    http: z
+      .record(z.unknown())
+      .optional()
+      .describe(
+        "http flavor: inline endpoint descriptor {endpoint_url, transport, " +
+          "request_template, response_text_path, ...}. Mutually exclusive with " +
+          "`endpoint_id`; prefer endpoint_id so the baseline and the later gate provably " +
+          "target the same endpoint. Must NOT contain credentials."
+      ),
   })
   .strict()
+  .refine((v) => !(v.endpoint_id && v.http), {
+    message: "pass either endpoint_id or http, not both",
+  })
   .refine(
-    (v) => [v.hf_repo, v.reference_upload_artifact_id].filter(Boolean).length === 1,
+    (v) =>
+      [v.hf_repo, v.reference_upload_artifact_id, v.endpoint_id ?? v.http].filter(Boolean)
+        .length === 1,
     {
       message:
-        "specify exactly one of: hf_repo (auto-FP16) or reference_upload_artifact_id (golden)",
+        "specify exactly one flavor: hf_repo (auto-FP16), reference_upload_artifact_id " +
+        "(golden), or endpoint_id/http (an API or workflow endpoint)",
     }
   );
 
@@ -58,6 +82,8 @@ export async function captureReferenceHandler(
     if (input.hf_repo !== undefined) body.hf_repo = input.hf_repo;
     if (input.reference_upload_artifact_id !== undefined)
       body.reference_upload_artifact_id = input.reference_upload_artifact_id;
+    if (input.endpoint_id !== undefined) body.endpoint_id = input.endpoint_id;
+    if (input.http !== undefined) body.http = input.http;
 
     const job = await client.captureReference(input.workspace_id, body);
 
