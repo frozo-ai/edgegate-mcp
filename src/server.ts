@@ -138,7 +138,7 @@ import {
   triggerRecorderReplayInputSchema,
 } from "./tools/trigger_recorder_replay.js";
 
-const TOOLS = [
+export const TOOLS = [
   {
     name: "edgegate_setup_workspace",
     description:
@@ -742,19 +742,24 @@ const TOOLS = [
   },
 ] as const;
 
-function getClient(): EdgeGateClient {
-  const apiUrl = process.env.EDGEGATE_API_URL ?? "https://edgegateapi.frozo.ai";
-  const apiKey = process.env.EDGEGATE_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "EDGEGATE_API_KEY is not set. Set it in your MCP client config. Generate a " +
-        "key at https://edgegate.frozo.ai/workspace/<id>/settings#api-keys."
-    );
-  }
-  return new EdgeGateClient({ apiUrl, apiKey });
+// Tools that only read. Web clients (ChatGPT, claude.ai) use this hint to skip
+// the write-confirmation prompt; everything else is treated as a write.
+const READ_ONLY = /^edgegate_(list|get|check|compare|predict|export)_|^edgegate_recorder_status$/;
+
+export interface CreateServerOptions {
+  /** Hosted (HTTP) mode: no local filesystem, so file-writing tools reply inline. */
+  remote?: boolean;
 }
 
-async function main(): Promise<void> {
+/**
+ * Build an MCP server over the tool registry. `getClient` is called per tool
+ * call so each transport decides where the credential comes from (env var on
+ * stdio, the request's bearer token over HTTP).
+ */
+export function createServer(
+  getClient: () => EdgeGateClient,
+  opts: CreateServerOptions = {}
+): Server {
   const server = new Server(
     { name: "edgegate-mcp", version: VERSION },
     { capabilities: { tools: {} } }
@@ -765,6 +770,7 @@ async function main(): Promise<void> {
       name: t.name,
       description: t.description,
       inputSchema: zodToJsonSchema(t.schema) as Record<string, unknown>,
+      annotations: { readOnlyHint: READ_ONLY.test(t.name) },
     })),
   }));
 
@@ -787,17 +793,31 @@ async function main(): Promise<void> {
     }
     const client = getClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return tool.handler(client, parsed.data as any) as any;
+    return (tool.handler as any)(client, parsed.data, opts) as any;
   });
 
+  return server;
+}
+
+export const DEFAULT_API_URL = "https://edgegateapi.frozo.ai";
+
+function getEnvClient(): EdgeGateClient {
+  const apiUrl = process.env.EDGEGATE_API_URL ?? DEFAULT_API_URL;
+  const apiKey = process.env.EDGEGATE_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "EDGEGATE_API_KEY is not set. Set it in your MCP client config. Generate a " +
+        "key at https://edgegate.frozo.ai/workspace/<id>/settings#api-keys."
+    );
+  }
+  return new EdgeGateClient({ apiUrl, apiKey });
+}
+
+/** stdio entrypoint — see src/stdio.ts. */
+export async function main(): Promise<void> {
+  const server = createServer(getEnvClient);
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // eslint-disable-next-line no-console
   console.error(`edgegate-mcp ${VERSION} listening on stdio`);
 }
-
-main().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error("Fatal:", err);
-  process.exit(1);
-});
