@@ -52,8 +52,8 @@ export interface Gate {
 
 export interface RunSummary {
   id: UUID;
-  pipeline_id: UUID;
-  pipeline_name: string;
+  pipeline_id: UUID | null;
+  pipeline_name: string | null;
   status: "pending" | "running" | "passed" | "failed" | "error";
   trigger: string;
   model_artifact_id: UUID | null;
@@ -85,6 +85,9 @@ export interface RunDetail extends RunSummary {
   normalized_metrics: Record<string, number> | null;
   gates_eval: GatesEval | null;
   bundle_artifact_id: UUID | null;
+  /** Behavioral runs have a signed summary instead of standard gates_eval. */
+  is_bg_run?: boolean;
+  bg_verdict?: Record<string, unknown> | null;
 }
 
 export interface RunBundle {

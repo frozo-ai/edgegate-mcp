@@ -14,6 +14,8 @@
  * the baseline the Celery task stored at completion time. When the user
  * explicitly provides a baseline_run_id that differs from what the backend
  * stored, we fall back to client-side diff from both runs' detail endpoints.
+ * Behavioral-Gate runs use bg_verdict.summary; null-pipeline runs require an
+ * explicit baseline and are never grouped by their shared null pipeline ID.
  */
 
 import { z } from "zod";
@@ -31,7 +33,8 @@ export const compareRunsInputSchema = z.object({
     .describe(
       "Baseline to compare against. When omitted, auto-selects the most recent " +
         "PASSED run from the same pipeline (excluding the candidate itself), " +
-        "or the most recent completed run as a fallback."
+        "or the most recent completed run as a fallback. Required for runs without a pipeline, " +
+        "including Behavioral-Gate runs."
     ),
 });
 
@@ -68,14 +71,48 @@ export async function compareRunsHandler(
       throw err;
     }
 
+    if (!["passed", "failed"].includes(candidateRun.status)) {
+      return comparisonUnavailable(candidateRun, null, "INSUFFICIENT EVIDENCE",
+        `Candidate run has status ${candidateRun.status}; only completed passed/failed runs can be compared.`);
+    }
+    // A null pipeline is not a shared identity: unrelated BG runs all have it.
+    if (!baseline_run_id && !candidateRun.pipeline_id) {
+      return { content: [{ type: "text", text: formatNoBaseline(candidateRun) }] };
+    }
+
+    if (!isBehavioralRun(candidateRun) && hasAmbiguousStandardGates(candidateRun)) {
+      return comparisonUnavailable(candidateRun, null, "INSUFFICIENT EVIDENCE",
+        "Standard gate evidence has unsupported, unnamed, or duplicate metric gates.");
+    }
+
     // --- Try the backend /diff endpoint first (Scenario A fast path) ---
     // The backend stores the diff from the previous pipeline run at completion.
     // If the caller did NOT supply a baseline_run_id (or it matches what the
     // backend would pick), use the pre-computed signed diff directly.
-    if (!baseline_run_id) {
+    if (!baseline_run_id && !isBehavioralRun(candidateRun)) {
       try {
         const comparison = await client.getRunDiff(workspace_id, run_id);
-        // Backend returned a diff — render it
+        // Older backend diffs collapsed gates by metric. Inspect the stored
+        // baseline too: candidate-only validation cannot detect a removed
+        // duplicate policy in the baseline.
+        if (!comparison.diff.is_baseline) {
+          if (!comparison.previous_run_id || comparison.previous_run_id === candidateRun.id) {
+            return comparisonUnavailable(candidateRun, null, "INSUFFICIENT EVIDENCE",
+              "Stored diff does not identify a distinct baseline run.");
+          }
+          let storedBaseline: RunDetail;
+          try {
+            storedBaseline = await client.getRun(workspace_id, comparison.previous_run_id);
+          } catch {
+            return comparisonUnavailable(candidateRun, null, "INSUFFICIENT EVIDENCE",
+              "Stored baseline source evidence is unavailable; gate completeness cannot be checked.");
+          }
+          if (isBehavioralRun(storedBaseline) || storedBaseline.pipeline_id !== candidateRun.pipeline_id ||
+              !["passed", "failed"].includes(storedBaseline.status) || hasAmbiguousStandardGates(storedBaseline)) {
+            return comparisonUnavailable(candidateRun, storedBaseline, "INSUFFICIENT EVIDENCE",
+              "Stored baseline has incompatible or ambiguous gate evidence, including possible duplicate metric gates.");
+          }
+        }
         return { content: [{ type: "text", text: renderComparison(comparison, candidateRun) }] };
       } catch (diffErr) {
         if (diffErr instanceof EdgeGateError && diffErr.status === 404) {
@@ -136,6 +173,27 @@ export async function compareRunsHandler(
       throw err;
     }
 
+    if (candidateRun.id === baselineRun.id) {
+      return comparisonUnavailable(candidateRun, baselineRun, "NOT COMPARABLE",
+        "Candidate and baseline must be different runs.");
+    }
+    if (!["passed", "failed"].includes(baselineRun.status)) {
+      return comparisonUnavailable(candidateRun, baselineRun, "INSUFFICIENT EVIDENCE",
+        `Baseline run has status ${baselineRun.status}; only completed passed/failed runs can be compared.`);
+    }
+    if (isBehavioralRun(candidateRun) || isBehavioralRun(baselineRun)) {
+      return compareBehavioralRuns(candidateRun, baselineRun);
+    }
+    if (!candidateRun.pipeline_id || candidateRun.pipeline_id !== baselineRun.pipeline_id) {
+      return comparisonUnavailable(candidateRun, baselineRun, "NOT COMPARABLE",
+        "Standard runs must belong to the same non-null pipeline.");
+    }
+
+    if (hasAmbiguousStandardGates(baselineRun)) {
+      return comparisonUnavailable(candidateRun, baselineRun, "INSUFFICIENT EVIDENCE",
+        "Standard gate evidence has unsupported, unnamed, or duplicate metric gates.");
+    }
+
     // Build client-side diff
     const comparison = buildClientSideDiff(candidateRun, baselineRun);
     return { content: [{ type: "text", text: renderComparison(comparison, candidateRun) }] };
@@ -158,6 +216,7 @@ async function pickAutoBaseline(
   candidateRun: RunDetail
 ): Promise<string | null> {
   const pipelineId = candidateRun.pipeline_id;
+  if (!pipelineId) return null;
   let runs;
   try {
     runs = await client.listRunsByPipeline(workspaceId, pipelineId, 20);
@@ -189,6 +248,159 @@ async function pickAutoBaseline(
   return null;
 }
 
+// ─── Behavioral-Gate evidence ──────────────────────────────────────────────
+
+interface BehavioralSignal {
+  name: string;
+  passed: boolean;
+  hard: boolean;
+  candidate_value: number;
+  reference_value: number;
+  threshold: number;
+}
+
+interface BehavioralSummary {
+  passed: boolean;
+  backend: string;
+  eval_set_sha256: string;
+  signals: BehavioralSignal[];
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function isBehavioralRun(run: RunDetail): boolean {
+  return run.is_bg_run === true || run.bg_verdict != null;
+}
+
+/** Read only the signed summary; unsigned top-level convenience fields are ignored. */
+function behavioralSummary(run: RunDetail): BehavioralSummary | null {
+  const envelope = record(run.bg_verdict);
+  const summary = record(envelope?.summary);
+  if (!summary || (envelope?.version !== undefined && envelope.version !== 1) ||
+      (summary.version !== undefined && summary.version !== 1) ||
+      typeof summary.passed !== "boolean" ||
+      typeof summary.backend !== "string" || !["cpu", "hardware", "api"].includes(summary.backend) ||
+      typeof summary.eval_set_sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(summary.eval_set_sha256) ||
+      !Array.isArray(summary.signals) || summary.signals.length === 0) return null;
+
+  const signals: BehavioralSignal[] = [];
+  const names = new Set<string>();
+  for (const value of summary.signals) {
+    const signal = record(value);
+    if (!signal || typeof signal.name !== "string" || !signal.name.trim() || names.has(signal.name) ||
+        typeof signal.passed !== "boolean" || typeof signal.hard !== "boolean" ||
+        finiteNumber(signal.candidate_value) === null || finiteNumber(signal.reference_value) === null ||
+        finiteNumber(signal.threshold) === null) return null;
+    names.add(signal.name);
+    signals.push({
+      name: signal.name, passed: signal.passed, hard: signal.hard,
+      candidate_value: signal.candidate_value as number,
+      reference_value: signal.reference_value as number, threshold: signal.threshold as number,
+    });
+  }
+  // A soft failure is a warning, not a gate failure. Inconsistent summaries are
+  // evidence gaps, not an excuse to derive a pass from run lifecycle status.
+  if (summary.passed !== signals.every((signal) => !signal.hard || signal.passed) ||
+      summary.passed !== (run.status === "passed")) return null;
+  return { passed: summary.passed, backend: summary.backend,
+    eval_set_sha256: summary.eval_set_sha256.toLowerCase(), signals };
+}
+
+function comparisonUnavailable(
+  candidate: RunDetail,
+  baseline: RunDetail | null,
+  verdict: "INSUFFICIENT EVIDENCE" | "NOT COMPARABLE",
+  reason: string
+): ToolResult {
+  return { content: [{ type: "text", text: [
+    "## Run Comparison", "", `**Candidate:** \`${candidate.id}\``,
+    `**Baseline:** \`${baseline?.id ?? "—"}\``, "", `### Verdict`, "",
+    `**${verdict}** — ${reason}`,
+  ].join("\n") }] };
+}
+
+function compareBehavioralRuns(candidate: RunDetail, baseline: RunDetail): ToolResult {
+  if (!isBehavioralRun(candidate) || !isBehavioralRun(baseline)) {
+    return comparisonUnavailable(candidate, baseline, "NOT COMPARABLE",
+      "Behavioral-Gate and standard pipeline runs use different evidence schemas.");
+  }
+  const current = behavioralSummary(candidate);
+  const previous = behavioralSummary(baseline);
+  if (!current || !previous) {
+    return comparisonUnavailable(candidate, baseline, "INSUFFICIENT EVIDENCE",
+      "Behavioral-Gate summary is missing, incomplete, inconsistent, or unsupported. " +
+      "Both runs need a supported summary with boolean outcomes, named signals, and an eval-set SHA-256.");
+  }
+  if (current.eval_set_sha256 !== previous.eval_set_sha256 || current.backend !== previous.backend) {
+    return comparisonUnavailable(candidate, baseline, "NOT COMPARABLE",
+      "Behavioral-Gate runs must use the same eval-set SHA-256 and execution backend. " +
+      `Baseline: ${previous.eval_set_sha256} (${previous.backend}); ` +
+      `candidate: ${current.eval_set_sha256} (${current.backend}).`);
+  }
+  const previousByName = new Map(previous.signals.map((signal) => [signal.name, signal]));
+  if (current.signals.length !== previous.signals.length || current.signals.some((signal) => {
+    const prev = previousByName.get(signal.name);
+    return !prev || prev.hard !== signal.hard || prev.threshold !== signal.threshold ||
+      prev.reference_value !== signal.reference_value;
+  })) {
+    return comparisonUnavailable(candidate, baseline, "NOT COMPARABLE",
+      "Behavioral-Gate signal names, hard/soft policies, thresholds, or reference values changed. " +
+      "Use runs evaluated under the same gate configuration and reference evidence.");
+  }
+
+  const signals = [...current.signals].sort((a, b) => a.name.localeCompare(b.name));
+  const hasRegression = signals.some((signal) =>
+    signal.hard && !signal.passed && previousByName.get(signal.name)!.passed);
+  const hasRecovery = signals.some((signal) =>
+    signal.hard && signal.passed && !previousByName.get(signal.name)!.passed);
+  const verdict = hasRegression ? "REGRESSION" : hasRecovery ? "IMPROVEMENT" : "NEUTRAL";
+  const lines = [
+    "## Run Comparison", "", "**Evidence:** Behavioral-Gate summary",
+    `**Candidate:** \`${candidate.id}\` (${candidate.completed_at ?? "—"})`,
+    `**Baseline:** \`${baseline.id}\` (${baseline.completed_at ?? "—"})`,
+    `**Eval-set SHA-256:** \`${current.eval_set_sha256}\``,
+    `**Execution backend:** ${current.backend}`, "",
+    `**Overall gate:** ${previous.passed ? "PASS" : "FAIL"} → ${current.passed ? "PASS" : "FAIL"}`,
+    "", "### Metrics", "| Signal | Baseline value | Candidate value | Delta | Threshold |",
+    "|---|---|---|---|---|",
+  ];
+  for (const signal of signals) {
+    const prev = previousByName.get(signal.name)!;
+    lines.push(`| ${signal.name} | ${fmt(prev.candidate_value)} | ${fmt(signal.candidate_value)} | ` +
+      `${fmtDelta(signal.candidate_value - prev.candidate_value)} | ${signal.threshold} |`);
+  }
+  lines.push("", "### Gate Status", "| Signal | Policy | Baseline | Candidate | Status |",
+    "|---|---|---|---|---|");
+  for (const signal of signals) {
+    const prev = previousByName.get(signal.name)!;
+    const transition = prev.passed === signal.passed
+      ? signal.passed ? "unchanged" : "still_failing"
+      : signal.passed ? "improved" : "regressed";
+    const label = signal.hard ? flipLabel(transition)
+      : signal.passed ? "advisory passing" : "advisory warning (does not fail gate)";
+    lines.push(`| ${signal.name} | ${signal.hard ? "hard" : "soft"} | ${gateIcon(prev.passed)} | ` +
+      `${gateIcon(signal.passed)} | ${label} |`);
+  }
+  lines.push("", "### Verdict", "", `**${verdict}** — ` + (hasRegression
+    ? "one or more hard behavioral signals regressed."
+    : hasRecovery ? "previously-failing hard behavioral signals now pass; no hard-signal regressions."
+    : "no hard behavioral signal pass/fail changes; soft signals are advisory."),
+    "", "### Audit Trail",
+    "Diff computed client-side from bg_verdict.summary (unsigned; no diff SHA-256). " +
+      "This comparison does not independently verify the source signatures.",
+    "This diff compares reported gate results. Matching summary fields do not establish identical " +
+      "reference artifacts, endpoint bindings, decode configuration, or independent behavioral parity.");
+  return { content: [{ type: "text", text: lines.join("\n") }] };
+}
+
 // ─── Client-side diff construction ────────────────────────────────────────
 
 function buildClientSideDiff(candidate: RunDetail, baseline: RunDetail): RunComparison {
@@ -202,8 +414,8 @@ function buildClientSideDiff(candidate: RunDetail, baseline: RunDetail): RunComp
   ]);
   const metric_deltas: Record<string, MetricDelta> = {};
   for (const k of allMetricKeys) {
-    const cur = candidateMetrics[k] ?? null;
-    const prev = baselineMetrics[k] ?? null;
+    const cur = finiteNumber(candidateMetrics[k]);
+    const prev = finiteNumber(baselineMetrics[k]);
     const delta = cur !== null && prev !== null ? cur - prev : null;
     const delta_pct =
       delta !== null && prev !== null && prev !== 0 ? (delta / prev) * 100 : null;
@@ -211,8 +423,8 @@ function buildClientSideDiff(candidate: RunDetail, baseline: RunDetail): RunComp
   }
 
   // Gate flips
-  const candidateGates = candidate.gates_eval?.gates ?? [];
-  const baselineGates = baseline.gates_eval?.gates ?? [];
+  const candidateGates = Array.isArray(candidate.gates_eval?.gates) ? candidate.gates_eval.gates : [];
+  const baselineGates = Array.isArray(baseline.gates_eval?.gates) ? baseline.gates_eval.gates : [];
   const prevByMetric = new Map(baselineGates.map((g) => [g.metric, g]));
   const currByMetric = new Map(candidateGates.map((g) => [g.metric, g]));
   const allGateMetrics = new Set([...prevByMetric.keys(), ...currByMetric.keys()]);
@@ -220,17 +432,7 @@ function buildClientSideDiff(candidate: RunDetail, baseline: RunDetail): RunComp
   for (const m of [...allGateMetrics].sort()) {
     const prev = prevByMetric.get(m) ?? null;
     const curr = currByMetric.get(m) ?? null;
-    let transition: string;
-    if (!prev) transition = "new";
-    else if (!curr) transition = "removed";
-    else {
-      const p = prev.passed;
-      const c = curr.passed;
-      if (c && p) transition = "unchanged";
-      else if (c && !p) transition = "improved";
-      else if (!c && p) transition = "regressed";
-      else transition = "still_failing";
-    }
+    const transition = classifyGateFlip(prev, curr);
     gate_flips.push({
       metric: m,
       transition,
@@ -274,6 +476,36 @@ function buildClientSideDiff(candidate: RunDetail, baseline: RunDetail): RunComp
   };
 }
 
+function hasAmbiguousStandardGates(run: RunDetail): boolean {
+  const gates = run.gates_eval?.gates;
+  if (gates === undefined || gates === null) return false;
+  if (!Array.isArray(gates)) return true;
+  const seen = new Set<string>();
+  return gates.some((gate) => {
+    if (!record(gate) || typeof gate.metric !== "string" || !gate.metric.trim()) return true;
+    if (seen.has(gate.metric)) return true;
+    seen.add(gate.metric);
+    return false;
+  });
+}
+
+const GATE_OPERATORS = new Set(["lt", "lte", "gt", "gte", "eq", "<", "<=", ">", ">=", "=="]);
+
+/** Older backend diffs coerced missing booleans and did not check gate-policy
+ * changes. Re-derive display labels without modifying the signed payload. */
+function classifyGateFlip(previous: GateFlip["previous"], current: GateFlip["current"]): string {
+  if (!previous) return "new";
+  if (!current) return "removed";
+  if (typeof previous.passed !== "boolean" || typeof current.passed !== "boolean") return "unknown";
+  if ([previous, current].some((gate) => finiteNumber(gate.threshold) === null ||
+    typeof gate.operator !== "string" || !GATE_OPERATORS.has(gate.operator))) return "not_comparable";
+  if (previous.threshold !== current.threshold || previous.operator !== current.operator) return "not_comparable";
+  if (previous.passed && current.passed) return "unchanged";
+  if (!previous.passed && current.passed) return "improved";
+  if (previous.passed && !current.passed) return "regressed";
+  return "still_failing";
+}
+
 // ─── Rendering ─────────────────────────────────────────────────────────────
 
 function renderComparison(comparison: RunComparison, candidateRun: RunDetail): string {
@@ -284,7 +516,7 @@ function renderComparison(comparison: RunComparison, candidateRun: RunDetail): s
   lines.push(
     `## Run Comparison`,
     ``,
-    `**Pipeline:** ${candidateRun.pipeline_name} (${candidateRun.pipeline_id})`,
+    `**Pipeline:** ${candidateRun.pipeline_name ?? "—"} (${candidateRun.pipeline_id ?? "—"})`,
     `**Candidate:** \`${comparison.current_run_id}\`  ` +
       `(${diff.current_completed_at ?? "in flight"})`,
     `**Baseline:**  \`${comparison.previous_run_id ?? "—"}\`  ` +
@@ -326,12 +558,17 @@ function renderComparison(comparison: RunComparison, candidateRun: RunDetail): s
     lines.push(``);
   }
 
-  // Gate flips
-  if (diff.gate_flips.length > 0) {
+  // Normalize labels from source values; leave the original diff/hash untouched.
+  const duplicateMetrics = new Set(diff.gate_flips.filter((gate, index, gates) =>
+    gates.findIndex((other) => other.metric === gate.metric) !== index).map((gate) => gate.metric));
+  const gateFlips = diff.gate_flips.map((gate) => ({
+    ...gate, transition: duplicateMetrics.has(gate.metric) ? "not_comparable" : classifyGateFlip(gate.previous, gate.current),
+  }));
+  if (gateFlips.length > 0) {
     lines.push(`### Gate Status`);
     lines.push(`| Gate | Baseline | Candidate | Status |`);
     lines.push(`|---|---|---|---|`);
-    for (const gf of diff.gate_flips) {
+    for (const gf of gateFlips) {
       const baseIcon = gateIcon(gf.previous?.passed ?? null);
       const candIcon = gateIcon(gf.current?.passed ?? null);
       const statusLabel = flipLabel(gf.transition);
@@ -354,7 +591,11 @@ function renderComparison(comparison: RunComparison, candidateRun: RunDetail): s
   }
 
   // Verdict
-  const verdict = computeVerdict(diff.gate_flips, diff.metric_deltas);
+  const verdict = computeVerdict(gateFlips, diff.metric_deltas);
+  if (gateFlips.some((gate) => ["unknown", "not_comparable", "new", "removed"].includes(gate.transition))) {
+    lines.push("Evidence gap: some gates are missing outcomes or use different policies. " +
+      "Only compatible, observed outcomes can establish a gate regression or recovery.", "");
+  }
   lines.push(`### Verdict`);
   lines.push(``);
   lines.push(verdictBadge(verdict));
@@ -363,9 +604,10 @@ function renderComparison(comparison: RunComparison, candidateRun: RunDetail): s
   // Audit trail
   lines.push(`### Audit Trail`);
   if (comparison.diff_sha256) {
-    lines.push(`Diff SHA-256: \`${comparison.diff_sha256}\` (signed, embedded in evidence bundle)`);
+    lines.push(`Diff SHA-256: \`${comparison.diff_sha256}\` (reported as signed and embedded in the evidence bundle; signature not independently verified by this tool)`);
+    lines.push("The digest refers to the original backend diff; displayed gate labels are derived from its reported outcomes and policies.");
   } else {
-    lines.push(`Diff computed client-side (no SHA-256 — backend diff not yet available for this run)`);
+    lines.push(`Diff computed client-side from run details (unsigned; no diff SHA-256).`);
   }
   if (candidateRun.bundle_artifact_id) {
     lines.push(`Candidate bundle artifact: \`${candidateRun.bundle_artifact_id}\``);
@@ -378,14 +620,16 @@ function renderComparison(comparison: RunComparison, candidateRun: RunDetail): s
 }
 
 function formatNoBaseline(candidateRun: RunDetail): string {
+  const explanation = candidateRun.pipeline_id
+    ? `No prior completed runs were found in pipeline "${candidateRun.pipeline_name}".`
+    : "This run has no pipeline. Supply baseline_run_id explicitly; unrelated runs with null pipeline IDs are not auto-matched.";
   return [
     `## Run Comparison`,
     ``,
-    `**Pipeline:** ${candidateRun.pipeline_name} (${candidateRun.pipeline_id})`,
+    `**Pipeline:** ${candidateRun.pipeline_name ?? "—"} (${candidateRun.pipeline_id ?? "—"})`,
     `**Candidate:** \`${candidateRun.id}\``,
     ``,
-    `> **NO BASELINE** — this is the first completed run in pipeline "${candidateRun.pipeline_name}", ` +
-      `or no prior completed runs were found. There is nothing to compare against yet.`,
+    `> **NO BASELINE** — ${explanation}`,
     ``,
     `**Verdict: NO BASELINE**`,
   ].join("\n");
@@ -403,7 +647,7 @@ function fmtDelta(v: number | null): string {
 }
 
 function gateIcon(passed: boolean | null): string {
-  if (passed === null) return "—";
+  if (typeof passed !== "boolean") return "—";
   return passed ? "✓" : "✗";
 }
 
@@ -415,6 +659,8 @@ function flipLabel(transition: string): string {
     case "still_failing": return "still failing";
     case "new":       return "new gate";
     case "removed":   return "removed";
+    case "unknown":   return "unknown (missing pass/fail evidence)";
+    case "not_comparable": return "not comparable (gate policy changed)";
     default:          return transition;
   }
 }
@@ -431,18 +677,30 @@ function buildDirectionLabel(metric: string, delta: number): string {
 function computeVerdict(
   gateFlips: GateFlip[],
   metricDeltas: Record<string, MetricDelta>
-): "REGRESSION" | "IMPROVEMENT" | "NEUTRAL" | "NO BASELINE" {
-  const hasRegression = gateFlips.some((gf) => gf.transition === "regressed");
-  const hasRecovery = gateFlips.some((gf) => gf.transition === "improved");
+): "REGRESSION" | "IMPROVEMENT" | "NEUTRAL" | "INSUFFICIENT EVIDENCE" {
+  const hasRegression = gateFlips.some((gf) => gf.transition === "regressed" &&
+    gf.previous?.passed === true && gf.current?.passed === false);
+  const hasRecovery = gateFlips.some((gf) => gf.transition === "improved" &&
+    gf.previous?.passed === false && gf.current?.passed === true);
 
   // Also flag metric-only regression even if no gate flip
   const significantMetricRegression = Object.entries(metricDeltas).some(([k, m]) => {
     if (!LOWER_IS_BETTER.has(k)) return false;
-    return m.delta_pct !== null && m.delta_pct >= REGRESSION_THRESHOLD_PCT;
+    return finiteNumber(m.previous) !== null && finiteNumber(m.current) !== null &&
+      finiteNumber(m.delta_pct) !== null && m.delta_pct! >= REGRESSION_THRESHOLD_PCT;
   });
 
   if (hasRegression || significantMetricRegression) return "REGRESSION";
-  if (hasRecovery && !hasRegression) return "IMPROVEMENT";
+  const comparableGates = gateFlips.filter((gf) =>
+    typeof gf.previous?.passed === "boolean" && typeof gf.current?.passed === "boolean" &&
+    ["unchanged", "still_failing", "improved", "regressed"].includes(gf.transition)
+  );
+  const hasComparableMetrics = Object.values(metricDeltas).some((m) =>
+    finiteNumber(m.previous) !== null && finiteNumber(m.current) !== null
+  );
+  if ((gateFlips.length > 0 && comparableGates.length !== gateFlips.length) ||
+      (comparableGates.length === 0 && !hasComparableMetrics)) return "INSUFFICIENT EVIDENCE";
+  if (hasRecovery) return "IMPROVEMENT";
   return "NEUTRAL";
 }
 
@@ -451,6 +709,7 @@ function verdictBadge(verdict: string): string {
     case "REGRESSION":  return `**REGRESSION** — one or more gates regressed or a lower-is-better metric increased by ≥${REGRESSION_THRESHOLD_PCT}%.`;
     case "IMPROVEMENT": return `**IMPROVEMENT** — previously-failing gates now pass; no regressions.`;
     case "NEUTRAL":     return `**NEUTRAL** — no gate flips and no significant metric regressions.`;
+    case "INSUFFICIENT EVIDENCE": return `**INSUFFICIENT EVIDENCE** — missing or incomparable gate/metric evidence; no neutral verdict can be established.`;
     case "NO BASELINE": return `**NO BASELINE** — no prior run to compare against.`;
     default:            return `**${verdict}**`;
   }

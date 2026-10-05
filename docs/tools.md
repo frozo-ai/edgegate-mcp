@@ -111,7 +111,7 @@ Generate the GitHub Actions workflow YAML + the `gh secret set` commands the use
 
 ## `edgegate_compare_runs`
 
-Diff two EdgeGate runs in the same pipeline: per-metric deltas, gate flip classification (✓→✗ regressions, ✗→✓ recoveries), per-device breakdown (when available), and an overall verdict.
+Diff two EdgeGate runs using standard pipeline evidence or Behavioral-Gate summary signals: per-metric deltas, gate flip classification (✓→✗ regressions, ✗→✓ recoveries), per-device breakdown (when available), and an overall verdict.
 
 **Input:**
 - `workspace_id` (string, UUID, required)
@@ -121,20 +121,28 @@ Diff two EdgeGate runs in the same pipeline: per-metric deltas, gate flip classi
   2. Fallback: most recent completed run in the pipeline
   3. If nothing qualifies: "NO BASELINE" response
 
+Runs without a pipeline, including Behavioral-Gate runs, require an explicit baseline. Null pipeline IDs are never used to group unrelated runs. Behavioral comparisons require matching eval-set hashes, execution backends, signal names, hard/soft policies, thresholds, and reported reference values. Matching these summary fields does not prove identical reference artifacts, endpoint bindings, or decode configuration.
+
+Standard gate comparisons require explicit supported operators and finite thresholds. Duplicate metric gates are ambiguous and produce insufficient evidence. Stored diffs also load the recorded baseline to check source evidence; an unavailable baseline cannot establish a comparison.
+
 **Returns:** Markdown with:
 - Header: pipeline name, candidate run ID, baseline run ID, completion timestamps
 - Commit context (branch, SHA, message) when available from the signed evidence bundle
 - Metrics table: baseline value → candidate value, delta, direction (better/worse)
 - Gate status table: flip classification per gate (`passing`, `**REGRESSION** ✓→✗`, `RECOVERY ✗→✓`, `still failing`)
 - Per-device breakdown for matrix runs
-- Overall verdict: **REGRESSION**, **IMPROVEMENT**, **NEUTRAL**, or **NO BASELINE**
-- Audit trail: diff SHA-256 (signed), bundle artifact IDs for both runs
+- Overall verdict: **REGRESSION**, **IMPROVEMENT**, **NEUTRAL**, **NO BASELINE**, **NOT COMPARABLE**, or **INSUFFICIENT EVIDENCE**
+- Audit trail: backend-provided diff SHA-256 when available, or an explicit unsigned client-side comparison note. This tool does not independently verify source signatures
 
 **Verdict rules:**
 - REGRESSION — any gate flip ✓→✗, OR any lower-is-better metric (`inference_time_ms`, `peak_memory_mb`) increases by ≥ 25%
 - IMPROVEMENT — at least one ✗→✓ gate flip with no regressions
-- NEUTRAL — no significant gate or metric changes
-- NO BASELINE — first run in pipeline or no eligible prior run found
+- NEUTRAL — no detected regression or recovery; does not prove all gates pass or establish merge safety
+- NO BASELINE — no eligible prior run found, or an explicit baseline is needed for a run without a pipeline
+- NOT COMPARABLE — runs have different evidence types or incompatible reported evaluation configuration
+- INSUFFICIENT EVIDENCE — unfinished/error states, missing outcomes, or unsupported/incomplete evidence cannot support a verdict
+
+For Behavioral-Gate runs, hard-signal pass/fail flips determine the verdict. Soft-signal failures remain advisory and do not fail the gate. The authoritative fields come from `bg_verdict.summary`, not unsigned top-level convenience duplicates.
 
 **Errors:** `404` if the candidate run itself is not found.
 

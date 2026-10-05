@@ -1,6 +1,6 @@
 ---
 name: edgegate-compare
-description: Diff two EdgeGate runs in the same pipeline. Use when the user wants to know "what changed" between runs, "is this a regression", "compare these runs", or "show the delta vs main".
+description: Diff two EdgeGate runs from the same pipeline or matching Behavioral-Gate configuration. Use when the user wants to know "what changed" between runs, "is this a regression", "compare these runs", or "show the delta vs main".
 ---
 
 # /edgegate-compare
@@ -13,6 +13,7 @@ The user wants to compare two EdgeGate runs and understand the verdict.
 
 2. **Identify the baseline.**
    - If the user provided a `baseline_run_id`, use it.
+   - For Behavioral-Gate runs without a pipeline, supply an explicit baseline from the same eval-set, execution backend, and gate/reference configuration. Null pipeline IDs do not identify related runs.
    - Otherwise, omit the field — `edgegate_compare_runs` auto-selects the most recent PASSED run from the same pipeline (excluding the candidate). This is almost always what users want.
 
 3. **Call `edgegate_compare_runs`** with `workspace_id`, `run_id`, and optionally `baseline_run_id`.
@@ -20,10 +21,14 @@ The user wants to compare two EdgeGate runs and understand the verdict.
 4. **Lead with the verdict.** The tool returns one of:
    - **REGRESSION** — at least one gate flipped ✓→✗ OR a lower-is-better metric increased by ≥ 25%. Call this out at the top. List which gates flipped and what metric jumped.
    - **IMPROVEMENT** — at least one ✗→✓ gate recovery with no regressions. Briefly highlight what got better.
-   - **NEUTRAL** — no significant changes. Reassure the user the run is safe to merge.
-   - **NO BASELINE** — this is the first run in the pipeline (nothing to compare against).
+   - **NEUTRAL** — no detected gate regression or recovery; for Behavioral-Gate runs, only hard-signal changes determine the verdict. Soft failures remain advisory. NEUTRAL does not establish that the run is safe to merge or that all gates pass.
+   - **NO BASELINE** — no baseline was found, or a run without a pipeline needs an explicit baseline.
+   - **NOT COMPARABLE** — evidence types, eval-set, backend, gate configuration, or reference values differ. Select compatible runs.
+   - **INSUFFICIENT EVIDENCE** — a run is unfinished, errored, or lacks supported outcome evidence. Do not call it neutral, passing, or safe.
 
-5. **For PR comments:** suggest the user attach the metric deltas table + verdict line. The audit trail (signed diff SHA-256) is in the response and worth including for compliance.
+5. **Respect the audit scope.** Client-side comparisons, including Behavioral-Gate comparisons, are unsigned derived reports; do not describe them as signed diffs or independently verified signatures.
+
+6. **For PR comments:** suggest the user attach the metric deltas table + verdict line. Include the audit trail and preserve whether the diff is a backend-provided signed artifact or an unsigned client-side comparison.
 
 ## Failure modes
 

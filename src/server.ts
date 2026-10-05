@@ -201,10 +201,11 @@ export const TOOLS = [
   {
     name: "edgegate_compare_runs",
     description:
-      "Diff two EdgeGate runs in the same pipeline — metrics delta, gate flips (✓→✗ regressions " +
-      "and ✗→✓ recoveries), per-device breakdown, and an overall verdict (REGRESSION / IMPROVEMENT / " +
-      "NEUTRAL / NO BASELINE). When baseline_run_id is omitted, auto-selects the most recent " +
-      "PASSED run from the same pipeline as the baseline.",
+      "Diff two EdgeGate runs — standard pipeline metrics/gates or Behavioral-Gate summary signals. " +
+      "Reports REGRESSION / IMPROVEMENT / NEUTRAL, or NO BASELINE / NOT COMPARABLE / INSUFFICIENT EVIDENCE " +
+      "when a reliable comparison cannot be made. Auto-selects a recent PASSED run from the same " +
+      "pipeline when baseline_run_id is omitted. Runs without a pipeline (including Behavioral-Gate " +
+      "runs) require an explicit baseline_run_id with matching eval-set and gate configuration.",
     schema: compareRunsInputSchema,
     handler: compareRunsHandler,
   },
