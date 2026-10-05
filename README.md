@@ -24,6 +24,27 @@ npx edgegate-mcp-install
 
 Restart your MCP client. Done.
 
+## Use it on the web (claude.ai, ChatGPT)
+
+No install and no API key. Add the hosted endpoint as a custom connector and approve it in your browser:
+
+```
+https://edgegate.frozo.ai/mcp
+```
+
+- **Claude** — Settings → Connectors → Add custom connector.
+- **ChatGPT** — Settings → Apps & Connectors → enable Developer mode, then create a connector with OAuth authentication.
+
+You sign in to EdgeGate and approve once; disconnect any time under **Settings → Connected AI apps** in the dashboard. The hosted endpoint has no access to your filesystem, so `edgegate_export_run_report` returns the report inline instead of writing a file.
+
+Any client that speaks Streamable HTTP can also use it with an API key as a bearer token:
+
+```bash
+claude mcp add --transport http edgegate https://edgegate.frozo.ai/mcp --header "Authorization: Bearer egk_live_..."
+```
+
+Self-hosting: `handleMcpRequest` from `edgegate-mcp/http` is a Web-standard `(Request) => Response` handler you can mount on any fetch runtime.
+
 ## Manual config
 
 If you'd rather edit config files yourself, the server is a standard stdio MCP. Add this to your client's config:

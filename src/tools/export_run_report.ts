@@ -47,7 +47,8 @@ const TERMINAL_STATUSES = new Set(["passed", "failed", "error"]);
 
 export async function exportRunReportHandler(
   client: EdgeGateClient,
-  input: ExportRunReportInput
+  input: ExportRunReportInput,
+  opts: { remote?: boolean } = {}
 ): Promise<ToolResult> {
   try {
     const { workspace_id, run_id, output_path, include_diff } = input;
@@ -106,6 +107,12 @@ export async function exportRunReportHandler(
 
     // --- 4. Render markdown ---
     const markdown = renderReport(run, bundle, comparison, workspace_id);
+
+    // Hosted mode has no user filesystem — and output_path would be an
+    // arbitrary write on the server — so the report is returned inline.
+    if (opts.remote) {
+      return { content: [{ type: "text", text: markdown }] };
+    }
 
     // --- 5. Resolve output path ---
     const idShort = run_id.slice(0, 8);
