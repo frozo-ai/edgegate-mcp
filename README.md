@@ -18,8 +18,8 @@ EdgeGate runs AI model regression tests on real Snapdragon hardware via Qualcomm
 # 1. Generate an API key in the EdgeGate dashboard
 # https://edgegate.frozo.ai/workspace/<id>/settings#api-keys
 
-# 2. Run the installer (writes config for Claude Code / Cursor / Desktop)
-npx edgegate-mcp-install
+# 2. Run the installer from the edgegate-mcp package (writes config for Claude Code / Cursor / Desktop)
+npx --package=edgegate-mcp@0.21.1 edgegate-mcp-install
 ```
 
 Restart your MCP client. Done.
